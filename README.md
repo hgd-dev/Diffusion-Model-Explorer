@@ -35,7 +35,7 @@ The simulator runs entirely in the browser as a single HTML file. There are no d
 Download or clone the repository, then open:
 
 ```text
-participation_diffusion.html
+participation_diffusion_model_explorer.html
 ```
 
 in any modern browser.
@@ -47,7 +47,7 @@ No installation is required.
 The simulator is also available at:
 
 ```text
-https://<username>.github.io/<repo>/
+https://hgd-dev.github.io/Diffusion-Model-Explorer/
 ```
 
 ## How to use the simulator
@@ -132,9 +132,10 @@ The close-tie and bridge-tie controls affect the randomized graph ensemble. They
 ├── index.html
 ├── participation_diffusion_model_explorer.html
 ├── README.md
-├── paper/
+├── Paper/
 │   ├── Participation Diffusion Dynamics in Influence-Driven Networks - H. Dong.pdf
 │   ├── Participation Diffusion Dynamics in Influence-Driven Networks - H. Dong.tex
+├── Supplements/
 │   ├── Color Readout Supplement - H. Dong.pdf
 │   └── Color Readout Supplement - H. Dong.tex
 └── LICENSE
