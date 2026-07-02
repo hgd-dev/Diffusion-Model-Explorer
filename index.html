@@ -1,0 +1,2004 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Club Participation Explorer</title>
+<style>
+  :root{
+    --p0:#0d0887; --p1:#6a00a8; --p2:#b12a90; --p3:#e16462; --p4:#fca636; --p5:#f0f921;
+    --bg:#08070d; --bg2:#0e0c16; --panel:#13111d; --panel2:#181525;
+    --line:rgba(255,255,255,.07); --line2:rgba(255,255,255,.12);
+    --ink:#ece9f5; --ink2:#a39db8; --ink3:#6f6987;
+    --accent:#e16462; --accent2:#fca636; --good:#5fd0a0; --warn:#f0c93a; --bad:#ef5a7a;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:
+      radial-gradient(1200px 600px at 80% -10%, rgba(177,42,144,.10), transparent 60%),
+      radial-gradient(900px 500px at -5% 110%, rgba(13,8,135,.18), transparent 55%),
+      var(--bg);
+    color:var(--ink); font-family:var(--sans); font-size:14px; line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--accent2);text-decoration:none}
+  h1,h2,h3{margin:0;font-weight:620;letter-spacing:-.01em}
+  .wrap{max-width:1240px;margin:0 auto;padding:22px 18px 50px}
+  
+  header.top{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:18px}
+  .brand{display:flex;flex-direction:column;gap:4px}
+  .brand .eyebrow{font:600 11px/1 var(--mono);letter-spacing:.22em;text-transform:uppercase;color:var(--ink3)}
+  .brand h1{font-size:25px;
+    background:linear-gradient(92deg,var(--p2),var(--p3) 40%,var(--p4) 78%,var(--p5));
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  .brand .sub{color:var(--ink2);font-size:12.5px;max-width:60ch}
+  .modeseg{display:inline-flex;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:4px;gap:3px}
+  .modeseg button{appearance:none;border:0;background:transparent;color:var(--ink2);
+    font:600 12.5px/1 var(--sans);padding:9px 16px;border-radius:8px;cursor:pointer;transition:.16s}
+  .modeseg button.on{background:linear-gradient(180deg,rgba(225,100,98,.22),rgba(106,0,168,.18));
+    color:var(--ink);box-shadow:inset 0 0 0 1px var(--line2)}
+  .modeseg button:hover:not(.on){color:var(--ink)}
+
+  .grid{display:grid;grid-template-columns:minmax(400px,448px) minmax(0,760px);gap:14px;align-items:start;justify-content:center}
+  @media(max-width:980px){.grid{grid-template-columns:1fr}}
+  .vizcol{position:sticky;top:12px;align-self:start;max-width:760px;width:100%}
+  @media(max-width:980px){.vizcol{position:static}}
+
+  .panel{background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--line);
+    border-radius:14px;padding:10px 11px}
+  .panel + .panel{margin-top:8px}
+  .panel h2{font-size:11.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink2);
+    display:flex;align-items:center;gap:8px;margin-bottom:8px;font-weight:650}
+  .panel h2 .dot{width:7px;height:7px;border-radius:50%;
+    background:linear-gradient(180deg,var(--p3),var(--p1));box-shadow:0 0 8px rgba(225,100,98,.6)}
+
+  .row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:5px 0}
+  .row label{color:var(--ink2);font-size:12.5px;display:flex;align-items:center;gap:6px}
+  .val{font:600 12px/1 var(--mono);color:var(--ink);background:var(--panel2);
+    border:1px solid var(--line);padding:4px 7px;border-radius:6px;min-width:46px;text-align:center}
+  .hint{font-size:10.5px;color:var(--ink3);margin:-2px 0 5px;line-height:1.35}
+  /* slider + editable value box pair */
+  .sgrp{display:flex;gap:8px;align-items:center}
+  .valbox{width:50px;font:600 12px/1 var(--mono);color:var(--ink);background:var(--panel2);
+    border:1px solid var(--line2);padding:5px 4px;border-radius:6px;text-align:center;outline:none;
+    -moz-appearance:textfield}
+  .valbox::-webkit-outer-spin-button,.valbox::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .valbox:focus{border-color:var(--p3);background:#1d1830}
+
+  input[type=range]{-webkit-appearance:none;appearance:none;width:108px;height:4px;border-radius:3px;
+    background:linear-gradient(90deg,var(--p1),var(--p3),var(--p4));outline:none;cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:15px;height:15px;
+    border-radius:50%;background:#fff;border:2px solid var(--p2);box-shadow:0 1px 6px rgba(0,0,0,.6);cursor:pointer}
+  input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;background:#fff;border:2px solid var(--p2);cursor:pointer}
+  input[type=range].wide{width:100%}
+
+  select,input[type=number]{background:var(--panel2);color:var(--ink);border:1px solid var(--line2);
+    border-radius:7px;padding:7px 9px;font:500 12.5px var(--sans);outline:none}
+  select:focus,input:focus{border-color:var(--p3)}
+
+  .seg{display:flex;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:3px;gap:3px}
+  .seg button{flex:1;appearance:none;border:0;background:transparent;color:var(--ink2);
+    font:600 12px var(--sans);padding:8px;border-radius:6px;cursor:pointer;transition:.15s;white-space:nowrap}
+  .seg button.on{background:linear-gradient(180deg,rgba(106,0,168,.45),rgba(177,42,144,.30));color:#fff}
+
+  .btn{appearance:none;border:1px solid var(--line2);background:var(--panel2);color:var(--ink);
+    font:600 13px var(--sans);padding:11px 14px;border-radius:10px;cursor:pointer;transition:.15s;width:100%}
+  .btn:hover{border-color:var(--p3);background:#1d1830}
+  .btn:disabled, .btn[disabled]{
+    opacity:.34;
+    filter:grayscale(.75) saturate(.45);
+    cursor:not-allowed;
+    background:rgba(255,255,255,.035);
+    color:rgba(236,233,245,.38);
+    border-color:rgba(255,255,255,.055);
+    box-shadow:none;
+  }
+  .btn:disabled:hover, .btn[disabled]:hover{
+    border-color:rgba(255,255,255,.055);
+    background:rgba(255,255,255,.035);
+    filter:grayscale(.75) saturate(.45);
+  }
+  .btn.primary{border:0;color:#1a0a16;
+    background:linear-gradient(95deg,var(--p3),var(--p4));box-shadow:0 6px 20px -8px rgba(252,166,54,.6)}
+  .btn.primary:hover{filter:brightness(1.07)}
+  .btn.primary:disabled, .btn.primary[disabled]{
+    background:linear-gradient(95deg,rgba(90,82,112,.45),rgba(104,92,116,.35));
+    color:rgba(236,233,245,.36);
+    box-shadow:none;
+  }
+  .btn.ghost{background:transparent}
+  .runpair{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  @media(max-width:520px){.runpair{grid-template-columns:1fr}}
+
+  .chips{display:flex;gap:7px;flex-wrap:wrap}
+  .chip{appearance:none;border:1px solid var(--line2);background:var(--panel2);color:var(--ink2);
+    font:600 11.5px var(--mono);padding:7px 10px;border-radius:8px;cursor:pointer;transition:.15s}
+  .chip:hover{color:var(--ink);border-color:var(--p3)}
+  .chip b{color:var(--p4)}
+
+  .events{display:flex;flex-direction:column;gap:7px;margin-top:4px}
+  .ev{display:grid;grid-template-columns:1fr 1fr auto;gap:7px;align-items:center}
+  .ev .mini{display:flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--line);
+    border-radius:7px;padding:5px 7px}
+  .ev .mini span{font:600 10px var(--mono);color:var(--ink3);text-transform:uppercase}
+  .ev input{width:100%;border:0;background:transparent;padding:2px 0}
+  .ev .del{appearance:none;border:1px solid var(--line);background:transparent;color:var(--ink3);
+    width:30px;height:30px;border-radius:7px;cursor:pointer;font-size:15px;line-height:1}
+  .ev .del:hover{color:var(--bad);border-color:var(--bad)}
+
+  details.adv{margin-top:6px;border-top:1px solid var(--line);padding-top:10px}
+  details.adv summary{cursor:pointer;color:var(--ink2);font:600 12px var(--sans);list-style:none;
+    display:flex;align-items:center;gap:7px;user-select:none}
+  details.adv summary::-webkit-details-marker{display:none}
+  details.adv summary .tw{transition:.2s;color:var(--ink3)}
+  details.adv[open] summary .tw{transform:rotate(90deg)}
+
+  .toggle{display:inline-flex;align-items:center;gap:8px;cursor:pointer}
+  .toggle input{display:none}
+  .toggle .sw{width:34px;height:19px;border-radius:11px;background:var(--panel2);border:1px solid var(--line2);
+    position:relative;transition:.18s}
+  .toggle .sw::after{content:"";position:absolute;top:2px;left:2px;width:13px;height:13px;border-radius:50%;
+    background:var(--ink3);transition:.18s}
+  .toggle input:checked + .sw{background:linear-gradient(90deg,var(--p2),var(--p3))}
+  .toggle input:checked + .sw::after{left:16px;background:#fff}
+
+  /* visualization column */
+  .viz{position:relative;max-width:760px;background:radial-gradient(700px 420px at 50% 38%,rgba(106,0,168,.10),transparent 70%),
+    linear-gradient(180deg,var(--panel),#0a0912);border:1px solid var(--line);border-radius:15px;
+    padding:13px 13px 6px;overflow:hidden}
+  .vizhead{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:6px;flex-wrap:wrap}
+  .vizhead .ttl{font:650 13px var(--sans);color:var(--ink);letter-spacing:.01em}
+  .stats{display:flex;gap:16px;flex-wrap:wrap}
+  .stat{display:flex;flex-direction:column;gap:1px}
+  .stat .k{font:600 9.5px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--ink3)}
+  .stat .v{font:650 16px var(--mono);color:var(--ink)}
+  .stat .v small{font-size:11px;color:var(--ink3);font-weight:500}
+  .netwrap{position:relative}
+  #netcv{display:block;width:100%;height:auto;border-radius:10px;cursor:crosshair}
+  /* hovered-node tooltip */
+  .nodetip{position:absolute;pointer-events:none;z-index:5;opacity:0;transform:translate(-50%,-114%);
+    transition:opacity .1s;background:rgba(16,14,26,.96);border:1px solid var(--line2);border-radius:9px;
+    padding:8px 10px;min-width:124px;box-shadow:0 8px 24px -8px rgba(0,0,0,.7)}
+  .nodetip.on{opacity:1}
+  .nodetip .nh{font:700 11px var(--mono);color:var(--p4);margin-bottom:5px;display:flex;justify-content:space-between;gap:10px}
+  .nodetip .nh em{font-style:normal;font-weight:600;color:var(--ink3)}
+  .nodetip .nr{display:flex;align-items:center;justify-content:space-between;gap:12px;font:600 10.5px var(--mono);margin:2px 0}
+  .nodetip .nr span{color:var(--ink2)}
+  .nodetip .nr b{color:var(--ink)}
+  .nodetip .swatch{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px;vertical-align:middle}
+  .legend{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:8px 2px 4px;flex-wrap:wrap}
+  .lgrad{display:flex;align-items:center;gap:9px;font:600 10px var(--mono);color:var(--ink2)}
+  .lgrad .bar{width:128px;height:9px;border-radius:5px;
+    background:linear-gradient(90deg,var(--p0),var(--p1),var(--p2),var(--p3),var(--p4),var(--p5))}
+  .lgrad .ring{width:13px;height:13px;border-radius:50%;border:2.5px solid var(--p4);background:rgba(255,255,255,.10)}
+  .lkey{display:flex;gap:13px;font:500 10.5px var(--sans);color:var(--ink3)}
+  .lkey i{font-style:normal}
+  .lkey .d{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:middle}
+
+  /* chart */
+  .chartwrap{margin-top:10px}
+  #chartcv{display:block;width:100%;height:auto;border-radius:10px;background:linear-gradient(180deg,#0a0912,#0c0a14);
+    border:1px solid var(--line)}
+  .transport{display:flex;align-items:center;gap:12px;margin:0 0 10px}
+  .play{appearance:none;border:1px solid var(--line2);background:var(--panel2);color:var(--ink);
+    width:42px;height:42px;border-radius:50%;cursor:pointer;display:grid;place-items:center;flex:none;transition:.15s}
+  .play:hover{border-color:var(--p3);background:#1d1830}
+  .play svg{width:17px;height:17px;fill:var(--ink)}
+  .scrub{flex:1;display:flex;align-items:center;gap:10px}
+  .scrub .wk{font:650 12px var(--mono);color:var(--ink);min-width:70px}
+  .ovl{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+  .ovl .o{appearance:none;border:1px solid var(--line);background:var(--panel2);color:var(--ink3);
+    font:600 10.5px var(--mono);padding:6px 9px;border-radius:7px;cursor:pointer;transition:.15s;
+    display:inline-flex;align-items:center;gap:6px}
+  .ovl .o .sw{width:8px;height:8px;border-radius:2px;background:currentColor;opacity:.5}
+  .ovl .o.on{color:var(--ink)}
+  .ovl .o.on .sw{opacity:1}
+
+  /* output / instructions */
+  .out{display:flex;flex-direction:column;gap:0}
+  .verdict{display:flex;align-items:center;gap:11px;padding:13px 14px;border-radius:11px;margin-bottom:13px;
+    border:1px solid var(--line2)}
+  .verdict.ok{background:linear-gradient(180deg,rgba(95,208,160,.12),transparent);border-color:rgba(95,208,160,.3)}
+  .verdict.no{background:linear-gradient(180deg,rgba(239,90,122,.12),transparent);border-color:rgba(239,90,122,.3)}
+  .verdict .ic{font-size:20px}
+  .verdict .tx b{display:block;font-size:13.5px;margin-bottom:1px}
+  .verdict .tx span{font-size:12px;color:var(--ink2)}
+  ol.steps{margin:4px 0 0;padding:0;list-style:none;counter-reset:s;display:flex;flex-direction:column;gap:9px}
+  ol.steps li{counter-increment:s;display:flex;gap:11px;align-items:flex-start;
+    background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:11px 12px}
+  ol.steps li::before{content:counter(s);flex:none;width:23px;height:23px;border-radius:50%;
+    background:linear-gradient(180deg,var(--p2),var(--p1));color:#fff;font:700 11px var(--mono);
+    display:grid;place-items:center;margin-top:1px}
+  ol.steps li .t b{color:var(--ink)}
+  ol.steps li .t{font-size:12.5px;color:var(--ink2)}
+  .costrow{display:flex;gap:12px;flex-wrap:wrap;margin-top:13px}
+  .costcard{flex:1;min-width:120px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:11px 12px}
+  .costcard .k{font:600 9.5px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:3px}
+  .costcard .v{font:650 17px var(--mono);color:var(--ink)}
+  .note{font-size:11.5px;color:var(--ink3);margin-top:14px;line-height:1.55;border-top:1px solid var(--line);padding-top:12px}
+  .empty{color:var(--ink3);font-size:12.5px;text-align:center;padding:26px 10px;line-height:1.6}
+  .progressbox{display:none;margin-top:11px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:11px 12px}
+  .progressbox.on{display:block}
+  .proghead{display:flex;justify-content:space-between;gap:10px;font:650 11px var(--mono);color:var(--ink2);margin-bottom:8px}
+  .progbar{height:10px;border-radius:999px;background:#090711;border:1px solid var(--line);overflow:hidden}
+  .progfill{height:100%;width:0%;background:linear-gradient(90deg,var(--p2),var(--p3),var(--p4));transition:width .08s linear}
+  .progmini{display:flex;gap:10px;flex-wrap:wrap;margin-top:9px;font:600 10.5px var(--mono);color:var(--ink3)}
+  .progmini b{color:var(--ink)}
+  .dirtyflag{margin-top:10px;border:1px solid rgba(252,166,54,.25);background:rgba(252,166,54,.08);border-radius:9px;padding:9px 10px;color:var(--ink2);font-size:11.5px}
+  .runbuttons{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+  .runpanel{
+    position:sticky;top:12px;z-index:8;
+    background:
+      radial-gradient(520px 180px at 18% 0%, rgba(252,166,54,.24), transparent 62%),
+      radial-gradient(420px 180px at 100% 0%, rgba(225,100,98,.18), transparent 60%),
+      linear-gradient(180deg,#24152a,#15101e 62%,#100d18);
+    border-color:rgba(252,166,54,.42);
+    box-shadow:0 14px 34px -18px rgba(252,166,54,.65),0 0 0 1px rgba(252,166,54,.08) inset;
+  }
+  .runpanel h2{color:#ffd69a}
+  .runpanel .dot{background:linear-gradient(180deg,var(--p5),var(--p3));box-shadow:0 0 12px rgba(252,166,54,.85)}
+  .runpanel .hint{margin-bottom:4px;color:#cfc3d9}
+
+  .planrunpanel .btn{margin-top:8px;width:100%;font-size:13.5px}
+  @media(max-width:520px){.runbuttons{grid-template-columns:1fr}}
+
+  .foot{margin-top:26px;color:var(--ink3);font-size:11.5px;line-height:1.6;border-top:1px solid var(--line);padding-top:16px}
+  .foot b{color:var(--ink2)}
+  .foot .cite{margin-top:9px;font-size:11px;color:var(--ink3)}
+  .foot .cite i{color:var(--ink2)}
+  .pulse{animation:pl 1.1s ease-in-out infinite}
+  @keyframes pl{0%,100%{opacity:.55}50%{opacity:1}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div class="eyebrow">Interactive Diffusion-Model Explorer</div>
+      <h1>Club Participation Explorer</h1>
+      <div class="sub">An agent-based diffusion model of how a high-school club grows, plateaus, or collapses across a semester — and how a well-timed plan can rescue it. Each core node is a simulated student; color is motivation.</div>
+    </div>
+    <div class="modeseg" id="modeseg">
+      <button data-mode="forward" class="on">Forward &middot; Predict</button>
+      <button data-mode="reverse">Reverse &middot; Plan</button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <!-- ============ CONTROLS COLUMN ============ -->
+    <div id="controls"></div>
+
+    <!-- ============ VISUAL COLUMN ============ -->
+    <div class="vizcol">
+      <div class="viz">
+        <div class="vizhead">
+          <div class="ttl" id="vizttl">Network state &middot; week 0</div>
+          <div class="stats">
+            <div class="stat"><div class="k">Turnout</div><div class="v" id="sA">0</div></div>
+            <div class="stat"><div class="k">Mean motivation</div><div class="v" id="sM">0.00</div></div>
+            <div class="stat"><div class="k">Members</div><div class="v" id="sAlive">0<small>/0</small></div></div>
+            <div class="stat"><div class="k">Reach</div><div class="v" id="sReach">0<small>%</small></div></div>
+          </div>
+        </div>
+        <div class="netwrap">
+          <canvas id="netcv" width="760" height="396"></canvas>
+          <div class="nodetip" id="nodetip"></div>
+        </div>
+        <div class="legend">
+          <div class="lgrad"><span>motivation</span><div class="bar"></div><span>0 &rarr; 1</span>
+            <div class="ring" style="margin-left:14px"></div><span>arc = loyalty</span></div>
+          <div class="lkey">
+            <i><span class="d" style="background:var(--p4)"></span>member (here)</i>
+            <i><span class="d" style="background:var(--p4);opacity:.4"></span>member (absent)</i>
+            <i><span class="d" style="background:#c79ce0"></span>being drawn in</i>
+            <i><span class="d" style="background:#564f78;box-shadow:0 0 0 2px rgba(122,162,255,.7)"></span>core network student</i>
+          </div>
+        </div>
+        <div class="chartwrap">
+          <div class="transport" id="transportbar">
+            <button class="play" id="playbtn" title="Play / pause">
+              <svg id="playicon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+            <div class="scrub">
+              <span class="wk" id="wklabel">wk 0 / 18</span>
+              <input type="range" class="wide" id="scrub" min="0" max="17" value="0" step="1">
+            </div>
+          </div>
+          <canvas id="chartcv" width="760" height="188"></canvas>
+          <div class="ovl" id="overlays">
+            <button class="o on" data-ov="A" style="color:var(--p4)"><span class="sw"></span>Attendance</button>
+            <button class="o" data-ov="m" style="color:#7aa2ff"><span class="sw"></span>Mean motivation</button>
+            <button class="o" data-ov="L" style="color:#5fd0a0"><span class="sw"></span>Mean loyalty</button>
+            <button class="o" data-ov="F" style="color:#ef9a5a"><span class="sw"></span>Mean fatigue</button>
+            <button class="o on" data-ov="ref" style="color:var(--ink3)"><span class="sw"></span>Quorum / target</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    Trajectories are illustrative qualitative regimes, not calibrated forecasts: headcounts are on the model's own scale,
+    and the aim is to show which behaviors the network structure produces and how interventions move between them.
+    <div class="cite">Based on <i>Participation Diffusion Dynamics in Influence-Driven Networks</i>, H.&nbsp;Dong.</div>
+  </div>
+</div>
+
+<script>
+/* Simulation engine */
+
+/* Discrete-time participation diffusion engine. */
+
+// seeded RNG
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const clip01 = (x) => (x < 0 ? 0 : x > 1 ? 1 : x);
+const sigm = (x) => 1 / (1 + Math.exp(-x));
+const posp = (x) => (x > 0 ? x : 0);
+const negp = (x) => (x < 0 ? -x : 0);
+
+// Gaussian draw, clipped to [lo, hi].
+function gdraw(rng, mean, sd, lo = -Infinity, hi = Infinity) {
+  let u = 1 - rng(), v = rng();
+  let z = Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+  let x = mean + sd * z;
+  return Math.min(hi, Math.max(lo, x));
+}
+
+// Regime presets. Per-node values are drawn from (mean, sd).
+const REGIMES = {
+  collapse: {
+    label: "Collapse (composition-like)",
+    m0: [0.28, 0.10], L0: [0.10, 0.05], F0: [0.35, 0.10], E0: [0.45, 0.12],
+    alpha0: [0.45, 0.10], etaL: 0.93, etaF: 0.55,
+    wP: [0.28, 0.10], b: [0.30, 0.10],
+    thetaA: [0.60, 0.08], thetaP: [0.70, 0.08], kapA: 9, kapP: 11,
+    Vex: [0.25, 0.10], Vev: 0.70, c: [0.55, 0.12],
+    beta: [0.26, 0.08], delta: 2.0, chi: [0.06, 0.03], chiViab: 0.016,
+    Nmin: 10, rho: [1.3, 0.2],
+    h0: [0.06, 0.02], g1: 1.6, g2: 1.6, g3: 1.3, xi1: 1.4, xi2: 1.5
+  },
+  stabilize: {
+    label: "Stabilize (fitness-like)",
+    m0: [0.33, 0.10], L0: [0.12, 0.06], F0: [0.28, 0.10], E0: [0.22, 0.07],
+    alpha0: [0.28, 0.08], etaL: 0.62, etaF: 0.35,
+    wP: [0.40, 0.15], b: [0.46, 0.10],
+    thetaA: [0.56, 0.10], thetaP: [0.70, 0.12], kapA: 8, kapP: 9,
+    Vex: [0.60, 0.13], Vev: 0.72, c: [0.55, 0.12],
+    beta: [0.34, 0.11], delta: 1.25, chi: [0.05, 0.03], chiViab: 0.04,
+    Nmin: 4, rho: [1.5, 0.25],
+    h0: [0.05, 0.02], g1: 1.6, g2: 1.1, g3: 1.2, xi1: 1.5, xi2: 1.1
+  }
+};
+
+// shared constants
+const GLOB = {
+  eps0: 1e-6, kapG: 2.0,
+  eventGain: 3.4, peerScale: 1.0,
+  // smooth (logistic) quorum gate; larger kapN approaches a hard threshold
+  kapN: 0.32,
+  // visibility amplification (gamma_v) channels: peer transmission and tie growth
+  visPeer: 1.25, visHebb: 1.25,
+  // early-weeks mentoring: positive reinforcement below quorum during the window
+  scaffReinf: 0.62,
+  // saturation damping on internal reinforcement (diminishing returns)
+  kapBS: 0.55,
+  lamL: 0.37, lamLdown: 0.045, lamF: 0.30,
+  phi1: 0.68, phi2: 0.34, phi3: 0.20,
+  psi1: 0.45, psi2: 0.20, psi3: 0.30,
+  sRole: 1.0, rPlus: 0.10,
+  // event pulse
+  lamR: 0.60,
+  // visibility/tie growth
+  mu: 0.28, eta1: 0.55, eta2: 0.45, muMix: 0.12,
+  // persuasiveness/credibility
+  z0: 0.30, z1: 0.40, z2: 0.30, wc1: 0.5, wc2: 0.5, credWin: 3,
+  // attrition
+  kapDrop: 0.5,
+  // modulating states (set gains to 0 to recover the core dynamics)
+  betaE: 0.15, betaEF: 0.30, kapEF: 0.30, kapSL: 0.50, kapPhi: 0.30,
+  lamE: 0.15, lamS: 0.10, lamV: 0.20, kapV: 18, s0: 2.0,
+  zE: 0.30, zEp: 0.30
+};
+
+function buildNetwork(n, rng, struct) {
+  struct = struct || {};
+  const groupSize = struct.groupSize || 8;          // typical friend-group size
+  const acquaint  = struct.acquaint  || 0;          // extra weak long-range ties
+  const inTies    = struct.inTies ?? Math.max(2, Math.round(groupSize * 0.5));
+  const outTies   = struct.outTies ?? 1.5;
+  const C = Math.max(2, Math.round(n / groupSize)); // number of communities
+  const kInBase = Math.max(0, Math.round(inTies));  // close/same-community ties per node
+  const kOutBase = Math.max(0, +outTies);           // bridge/cross-community ties per node
+  const comm = new Array(n);
+  const ang = new Array(n);
+  for (let i = 0; i < n; i++) {
+    comm[i] = i % C;
+    // place within a community sector + jitter
+    const sector = (comm[i] / C) * 2 * Math.PI;
+    ang[i] = sector + (rng() - 0.5) * (2 * Math.PI / C) * 0.8;
+  }
+  const sim = (i, j) => {
+    let d = Math.abs(ang[i] - ang[j]);
+    d = Math.min(d, 2 * Math.PI - d);
+    return Math.exp(-(d * d) / 0.6);
+  };
+  // directed edges j -> i
+  const inN = Array.from({ length: n }, () => []);
+  const edgeSet = new Set();
+  for (let i = 0; i < n; i++) {
+    const cand = [];
+    for (let j = 0; j < n; j++) if (j !== i) cand.push([j, sim(i, j)]);
+    cand.sort((a, b) => b[1] - a[1]);
+    const kIn = kInBase + Math.floor(rng() * 3);
+    let added = 0;
+    for (const [j] of cand) {
+      if (comm[j] === comm[i] && added < kIn) {
+        const key = j + "," + i;
+        if (!edgeSet.has(key)) { edgeSet.add(key); inN[i].push(j); added++; }
+      }
+      if (added >= kIn) break;
+    }
+    const nB = Math.floor(kOutBase) + (rng() < (kOutBase - Math.floor(kOutBase)) ? 1 : 0);
+    let tries = 0, bridges = 0;
+    while (bridges < nB && tries < n * 3) {
+      tries++;
+      const j = Math.floor(rng() * n);
+      if (j !== i && comm[j] !== comm[i]) {
+        const key = j + "," + i;
+        if (!edgeSet.has(key)) { edgeSet.add(key); inN[i].push(j); bridges++; }
+      }
+    }
+  }
+  // extra weak long-range ties
+  const acq = new Set();
+  for (let a = 0; a < acquaint; a++) {
+    const i = Math.floor(rng() * n);
+    const j = Math.floor(rng() * n);
+    if (i === j) continue;
+    const key = j + "," + i;
+    if (!edgeSet.has(key)) { edgeSet.add(key); inN[i].push(j); acq.add(key); }
+  }
+  return { C, comm, ang, sim, inN, acq };
+}
+
+class Model {
+  constructor(opts) {
+    const { n = 36, regime = "collapse", seed = 7, stochastic = false,
+            modulating = true } = opts;
+    this.n = n; this.stochastic = stochastic; this.modulating = modulating;
+    this.R = REGIMES[regime]; this.G = GLOB;
+    this.rng = mulberry32(seed);
+    const net = buildNetwork(n, this.rng, { groupSize: opts.groupSize, acquaint: opts.acquaint, inTies: opts.inTies, outTies: opts.outTies });
+    this.net = net;
+
+    const r = this.R, rng = this.rng;
+    const arr = (f) => Array.from({ length: n }, f);
+    this.alpha0 = arr(() => gdraw(rng, ...r.alpha0, 0.02, 0.95));
+    this.wP = arr(() => gdraw(rng, ...r.wP, 0.0, 1.2));
+    this.b = arr(() => gdraw(rng, ...r.b, 0.0, 1.0));
+    this.thetaA = arr(() => gdraw(rng, ...r.thetaA, 0.1, 0.95));
+    this.thetaP = arr(() => gdraw(rng, ...r.thetaP, 0.1, 0.98));
+    this.Vex = arr(() => gdraw(rng, ...r.Vex, 0.0, 1.0));
+    this.cAvail = arr(() => gdraw(rng, ...r.c, 0.1, 1.0));
+    this.beta = arr(() => gdraw(rng, ...r.beta, 0.0, 3.0));
+    this.chi = arr(() => gdraw(rng, ...r.chi, 0.0, 0.5));
+    this.rho = arr(() => gdraw(rng, ...r.rho, 0.3, 3.0));
+    this.h0 = arr(() => gdraw(rng, ...r.h0, 0.0, 0.3));
+    this.Ebar = arr(() => gdraw(rng, ...r.E0, 0.0, 1.0));
+
+    this.m = arr(() => gdraw(rng, ...r.m0, 0.0, 1.0));
+    this.L = arr(() => gdraw(rng, ...r.L0, 0.0, 1.0));
+    this.F = arr(() => gdraw(rng, ...r.F0, 0.0, 1.0));
+    this.E = this.Ebar.slice();
+    this.S = arr(() => 0.0);
+    this.act = arr(() => 1.0);
+    this.mbar = this.m.slice();
+    this.mvar = arr(() => 0.0);
+    this.Phi = arr(() => 1.0);
+    this.aHist = [];
+
+    // influence structure
+    this.edges = [];   // {i, j, v, s, w, base}
+    this.inEdges = Array.from({ length: n }, () => []);  // indices into edges, grouped by receiver i
+    for (let i = 0; i < n; i++) {
+      for (const j of net.inN[i]) {
+        const simij = net.sim(i, j);
+        const sameC = net.comm[i] === net.comm[j];
+        const isAcq = net.acq && net.acq.has(j + "," + i);  // weak long-range tie
+        const base = isAcq
+          ? clip01(0.10 + 0.25 * simij + (rng() - 0.5) * 0.06)
+          : clip01((sameC ? 0.55 : 0.20) + 0.3 * simij + (rng() - 0.5) * 0.1);
+        const v0 = clip01(0.5 * base + 0.1);
+        const idx = this.edges.length;
+        this.edges.push({ i, j, simij, base, v: v0, s: r.z0 + r.z1 * simij + r.z2 * 0.1, w: 0 });
+        this.inEdges[i].push(idx);
+      }
+    }
+    this._refreshOmega(); // initialise s,w from current credibility
+  }
+
+  cred(j, week) {
+    // cred_j = wc1 L_j + wc2 * mean recent a_tilde_j
+    const G = this.G;
+    let s = 0, cnt = 0;
+    for (let k = Math.max(0, this.aHist.length - G.credWin); k < this.aHist.length; k++) {
+      s += this.aHist[k][j]; cnt++;
+    }
+    const recA = cnt ? s / cnt : 0;
+    return clip01(G.wc1 * this.L[j] + G.wc2 * recA);
+  }
+
+  _refreshOmega(week = 0) {
+    // persuasiveness (9) s_ij = z0 + z1 sim + z2 cred_j ; omega = clip(v*s) (7)
+    for (const e of this.edges) {
+      const credj = this.cred(e.j, week);
+      e.s = clip01(this.G.z0 + this.G.z1 * e.simij + this.G.z2 * credj);
+      e.w = clip01(e.v * e.s);
+    }
+  }
+
+  step(week, ctrl) {
+    const n = this.n, G = this.G, r = this.R;
+    const events = ctrl.events || [];
+    const gv = ctrl.gv ?? 1;
+    const K = ctrl.K ?? 1e9;
+    const scaff = ctrl.scaff || null;
+
+    // action probabilities and attendance
+    const mhat = new Array(n), Pa = new Array(n), Pp = new Array(n);
+    const a = new Array(n), p = new Array(n);
+    for (let i = 0; i < n; i++) {
+      mhat[i] = clip01(this.m[i] + G.betaE * (this.E[i] - 0.5));
+      Pa[i] = sigm(r.kapA * (mhat[i] - this.thetaA[i]));
+      Pp[i] = sigm(r.kapP * (mhat[i] - this.thetaP[i]));
+      if (this.stochastic) {
+        a[i] = (this.rng() < Pa[i] ? 1 : 0) * (this.act[i] > 0.5 ? 1 : 0);
+        p[i] = (this.rng() < Pp[i] ? 1 : 0) * (this.act[i] > 0.5 ? 1 : 0);
+      } else {
+        a[i] = Pa[i] * this.act[i];
+        p[i] = Pp[i] * this.act[i];
+      }
+    }
+    // capacity scaling
+    let sumA = 0; for (let i = 0; i < n; i++) sumA += a[i];
+    const atil = new Array(n);
+    for (let i = 0; i < n; i++) atil[i] = a[i] / (1 + sumA / Math.max(K, 1e-6));
+    let A = 0; for (let i = 0; i < n; i++) A += atil[i];
+    this.aHist.push(atil.slice());
+
+    // weights and peer aggregates
+    this._refreshOmega(week);
+    const visAmp = new Array(n);
+    for (let j = 0; j < n; j++) visAmp[j] = 1 + G.visPeer * (gv - 1) * this.Vex[j];
+    const abarN = new Array(n).fill(0), ell = new Array(n).fill(0);
+    const wsum = new Array(n).fill(0);
+    for (const e of this.edges) {
+      const we = e.w * visAmp[e.j];
+      abarN[e.i] += we * atil[e.j];
+      wsum[e.i] += we;
+      ell[e.i] += e.w;
+    }
+    for (let i = 0; i < n; i++) abarN[i] = abarN[i] / (wsum[i] + G.eps0);
+
+    // peer input
+    const Xtil = new Array(n).fill(0);
+    {
+      const Xi = new Array(n).fill(0);
+      for (const e of this.edges) {
+        Xi[e.i] += e.w * visAmp[e.j] * this.b[e.j] * Math.tanh(G.kapG * this.m[e.j]);
+      }
+      for (let i = 0; i < n; i++) Xtil[i] = Xi[i] / (1 + this.rho[i] * Xi[i]);
+    }
+
+    // reinforcement terms
+    const nuE = (i) => 1 + G.betaEF * (0.5 - this.E[i]);
+    const Ri = new Array(n).fill(0), Bi = new Array(n).fill(0);
+    for (let i = 0; i < n; i++) {
+      let pulse = 0;
+      for (const ev of events) if (ev.week <= week) pulse += ev.amp * Math.exp(-G.lamR * (week - ev.week));
+      Ri[i] = G.eventGain * (1 - this.S[i]) * nuE(i) * r.Vev * pulse;
+      const inWindow = scaff && week >= scaff.a && week <= scaff.b;
+      const gB = inWindow ? scaff.gB : 1.0;
+      const y = atil[i];
+      const conc = this.beta[i] * (1 - Math.exp(-r.delta * y));
+      const skip = (y <= 1e-9) ? this.chi[i] : 0;
+      const aboveQuorum = A >= r.Nmin;
+      Bi[i] = nuE(i) * gB * (aboveQuorum ? (conc - skip) : -r.chiViab);
+    }
+
+    // decay and gain
+    const alpha = new Array(n), Fhat = new Array(n);
+    for (let i = 0; i < n; i++) {
+      Fhat[i] = clip01(this.F[i] + G.kapEF * (0.5 - this.E[i]));
+      const loyaltyProtection = 1 - r.etaL * (1 - G.kapSL * this.S[i]) * this.L[i];
+      const fatigueAcceleration = 1 + r.etaF * Fhat[i];
+      alpha[i] = clip01(this.alpha0[i] * loyaltyProtection * fatigueAcceleration);
+    }
+    const Gphi = (i) => 1 + G.kapPhi * (1 - 2 * this.Phi[i]);
+
+    // advance states
+    const mN = new Array(n), LN = new Array(n), FN = new Array(n),
+          EN = new Array(n), SN = new Array(n);
+    const eps = G; // noise off in deterministic mode
+    for (let i = 0; i < n; i++) {
+      const drive = G.peerScale * this.wP[i] * (1 - this.S[i]) * Xtil[i] + this.cAvail[i] * Ri[i] + Bi[i] + (this.stochastic ? (this.rng() - 0.5) * 0.02 : 0);
+      const gain = this.modulating ? Gphi(i) : 1;
+      mN[i] = clip01((1 - alpha[i]) * this.m[i] + gain * drive);
+
+      const sat = (1 - G.kapSL * this.S[i]);
+      const targL = G.phi1 * atil[i] + G.phi2 * G.sRole * sat * abarN[i] + G.phi3 * nuE(i) * G.rPlus;
+      LN[i] = clip01(this.L[i] + G.lamL * (targL - this.L[i]));
+
+      const y = atil[i];
+      const targF = nuE(i) * G.psi1 * y + nuE(i) * G.psi2 * abarN[i] + G.psi3 * (1 - atil[i]);
+      FN[i] = clip01(this.F[i] + G.lamF * (targF - this.F[i]));
+
+      if (this.modulating) {
+        const shock = this.stochastic ? (this.rng() - 0.5) * 0.1 : 0;
+        EN[i] = clip01((1 - G.lamE) * this.E[i] + G.lamE * this.Ebar[i] + G.zE * posp(Bi[i]) - G.zEp * negp(Bi[i]) + shock);
+      }
+      else { EN[i] = this.E[i]; }
+
+      if (this.modulating) {
+        const actGate = this.act[i] > 0.5 ? 1 : this.act[i];
+        SN[i] = actGate * ((1 - G.lamS) * this.S[i] + G.lamS * (ell[i] / (ell[i] + G.s0)));
+      }
+      else { SN[i] = 0; }
+    }
+
+    // visibility / Hebbian edge update
+    const hebbAmp = 1 + G.visHebb * (gv - 1);
+    for (const e of this.edges) {
+      const hebb = hebbAmp * G.eta1 * atil[e.i] * atil[e.j] + G.eta2 * (gv * this.Vex[e.j]) * p[e.j];
+      e.v = clip01((1 - G.mu) * e.v + G.mu * hebb + G.muMix * (e.base - e.v));
+    }
+
+    // attrition / reactivation
+    for (let i = 0; i < n; i++) {
+      const h = this.h0[i] * Math.exp(-r.g1 * this.m[i] - r.g2 * this.L[i] + r.g3 * this.F[i]);
+      const pDrop = 1 - Math.exp(-h);
+      const pReact = 1 - Math.exp(-r.xi1 * Ri[i] - r.xi2 * abarN[i]);
+      if (this.stochastic) {
+        if (this.act[i] > 0.5) { if (this.rng() < pDrop) this.act[i] = 0; }
+        else { if (this.rng() < pReact) this.act[i] = 1; }
+      }
+      else { this.act[i] = this.act[i] * (1 - pDrop) + (1 - this.act[i]) * pReact; }
+    }
+    for (const e of this.edges) { if (this.act[e.j] < 0.5) { e.v = clip01(e.v * G.kapDrop); } }
+
+    for (let i = 0; i < n; i++) {
+      this.m[i] = mN[i]; this.L[i] = LN[i]; this.F[i] = FN[i];
+      this.E[i] = EN[i]; this.S[i] = SN[i];
+    }
+    for (let i = 0; i < n; i++) {
+      this.mbar[i] = (1 - G.lamV) * this.mbar[i] + G.lamV * this.m[i];
+      this.mvar[i] = (1 - G.lamV) * this.mvar[i] + G.lamV * (this.m[i] - this.mbar[i]) ** 2;
+      this.Phi[i] = 1/(1 + G.kapV * this.mvar[i]);
+    }
+    this._refreshOmega(week + 1);
+
+    return {
+      week, A,
+      Pa: Pa.slice(), atil: atil.slice(),
+      m: mN.slice(), L: LN.slice(), F: FN.slice(),
+      E: EN.slice(), S: SN.slice(), act: this.act.slice(),
+      alpha: alpha.slice(), Phi: this.Phi.slice()
+    };
+  }
+}
+
+function simulate(opts) {
+  const T = opts.T ?? 18;
+  const model = new Model(opts);
+  const ctrl = opts.ctrl || { events: [], gv: 1, K: 1e9, scaff: null };
+  const snaps = [];
+  for (let t = 0; t < T; t++) { snaps.push(model.step(t, ctrl)); }
+  return { snaps, model };
+}
+
+window.PDE = { simulate, REGIMES, GLOB, Model, mulberry32 };
+/* App/UI */
+(function(){
+"use strict";
+
+// plasma colormap
+const PLASMA = [[13,8,135],[126,3,168],[177,42,144],[225,100,98],[252,166,54],[240,249,33]];
+function plasma(t){
+  t = t<0?0:t>1?1:t;
+  const x = t*(PLASMA.length-1), i = Math.floor(x), f = x-i;
+  const a = PLASMA[i], b = PLASMA[Math.min(i+1,PLASMA.length-1)];
+  const r = Math.round(a[0]+(b[0]-a[0])*f);
+  const g = Math.round(a[1]+(b[1]-a[1])*f);
+  const bl= Math.round(a[2]+(b[2]-a[2])*f);
+  return "rgb("+r+","+g+","+bl+")";
+}
+function plasmaRGB(t){
+  t = t<0?0:t>1?1:t;
+  const x = t*(PLASMA.length-1), i = Math.floor(x), f = x-i;
+  const a = PLASMA[i], b = PLASMA[Math.min(i+1,PLASMA.length-1)];
+  return [Math.round(a[0]+(b[0]-a[0])*f), Math.round(a[1]+(b[1]-a[1])*f), Math.round(a[2]+(b[2]-a[2])*f)];
+}
+
+const LATENT_RGB=[74,70,104];
+function emColor(t, em){
+  const p=plasmaRGB(t), g=LATENT_RGB;
+  return "rgb("+Math.round(g[0]+(p[0]-g[0])*em)+","+Math.round(g[1]+(p[1]-g[1])*em)+","+Math.round(g[2]+(p[2]-g[2])*em)+")";
+}
+function lerp(a,b,t){return a+(b-a)*t;}
+const clamp=(x,a,b)=>x<a?a:x>b?b:x;
+const mean=(arr)=>arr.reduce((s,x)=>s+x,0)/(arr.length||1);
+
+// defaults and presets
+const SEED = 11;
+const NET_H = 396, CHART_H = 188;   // canvas heights (CSS px)
+const DEF = {
+  forward: { n:36, regime:"collapse", seed:SEED, T:18,
+    events:[{week:2,amp:0.30}], gv:3.5, K:14,
+    scaffOn:true, scaffA:2, scaffB:6, gB:1.8,
+    groupSize:8, inTies:4, outTies:1.5, acquaint:0, body:220, trials:250 }
+};
+
+const PRESETS = {
+  A:{ label:"A · Naive collapse", regime:"collapse",
+      events:[{week:2,amp:0.60}], gv:1, K:14, scaffOn:false, scaffA:2,scaffB:6,gB:1.8, groupSize:8, inTies:4, outTies:1.5, acquaint:0, body:220, trials:250 },
+  B:{ label:"B · Favorable & stable", regime:"stabilize",
+      events:[{week:2,amp:0.35},{week:6,amp:0.35},{week:10,amp:0.35}], gv:1.4, K:18,
+      scaffOn:false, scaffA:2,scaffB:6,gB:1.8, groupSize:8, inTies:4, outTies:1.5, acquaint:0, body:220, trials:250 },
+  C:{ label:"C · Reverse-planned rescue", regime:"collapse",
+      events:[{week:2,amp:0.30}], gv:3.5, K:14, scaffOn:true, scaffA:2,scaffB:6,gB:1.8, groupSize:8, inTies:4, outTies:1.5, acquaint:0, body:220, trials:250 }
+};
+
+// app state
+const S = {
+  mode:"forward",
+  cfg: JSON.parse(JSON.stringify(DEF.forward)),
+  rev: { Astar:9, T:18, regime:"collapse", maxEvents:4, ampCap:0.6, gvCap:4.0, Kceil:20, scaffAllow:true },
+  res:null,          // {snaps, model, layout}
+  week:0,
+  playing:false,
+  clock:0,           // ambient animation time (ms)
+  pendingSim:false,
+  dirty:false,       // controls changed since the last completed forward run
+  running:false,     // ensemble simulation currently executing
+  resultMode:"sample",
+  sampleCounter:0,
+  hoverNode:null,
+  hoverType:"core",
+  _tipKey:null,
+  _lastPoolPos:null,
+  overlays:{A:true,m:false,L:false,F:false,ref:true},
+  refLines:{Nmin:null, Astar:null},
+  planText:null,
+  planCfg:null,
+  _progressCfg:null
+};
+
+// engine options
+function cfgToOpts(c){
+  return {
+    n:c.n, regime:c.regime, seed:c.seed, T:c.T, stochastic:false, modulating:true,
+    groupSize:+c.groupSize, inTies:+c.inTies, outTies:+c.outTies, acquaint:+c.acquaint,
+    ctrl:{
+      events:c.events.map(e=>({week:+e.week,amp:+e.amp})),
+      gv:+c.gv, K:+c.K,
+      scaff: c.scaffOn ? {a:+c.scaffA,b:+c.scaffB,gB:+c.gB} : null
+    }
+  };
+}
+
+function normalizePlanCfg(planCfg){
+  const base=Object.assign({}, JSON.parse(JSON.stringify(DEF.forward)), JSON.parse(JSON.stringify(S.cfg||{})));
+  const c=Object.assign(base, JSON.parse(JSON.stringify(planCfg||{})));
+  c.events=(c.events||[]).map(e=>({week:+e.week, amp:+e.amp}));
+  c.seed=(+c.seed||SEED);
+  c.n=+(c.n||base.n||36);
+  c.T=+(c.T||base.T||18);
+  c.groupSize=+(c.groupSize||base.groupSize||8);
+  c.inTies=+(c.inTies ?? base.inTies ?? Math.max(2,Math.round(c.groupSize*0.5)));
+  c.outTies=+(c.outTies ?? base.outTies ?? 1);
+  c.acquaint=+(c.acquaint ?? base.acquaint ?? 0);
+  c.body=+(c.body ?? base.body ?? 220);
+  c.trials=+(c.trials ?? base.trials ?? 250);
+  return c;
+}
+
+
+function terminalA(snaps){
+  const k=Math.min(4,snaps.length);
+  return mean(snaps.slice(snaps.length-k).map(s=>s.A));
+}
+function peakA(snaps){return Math.max(...snaps.map(s=>s.A));}
+
+// layout
+function buildLayout(model, w, h, poolCount){
+  const n=model.n, net=model.net;
+  const cx=w/2, cy=h/2;
+  const R=Math.min(w,h)*0.37;   // active club cluster: compact, sits within the population
+  const byComm={};
+  for(let i=0;i<n;i++){ (byComm[net.comm[i]] ||= []).push(i); }
+  const radIdx=new Array(n), radCnt=new Array(n);
+  for(const c in byComm){
+    const list=byComm[c];
+    // sort by angle so within-petal order is tidy
+    list.forEach((i,k)=>{ radIdx[i]=k; radCnt[i]=list.length; });
+  }
+  const pos=new Array(n);
+  for (let i = 0; i < n; i++){
+    const frac = radCnt[i] > 1 ? radIdx[i]/(radCnt[i] - 1) : 0.5;
+    const r = R*(0.40 + 0.60*frac);
+    const th = net.ang[i];
+    pos[i] = {x:cx + r*Math.cos(th), y:cy + r*Math.sin(th)};
+  }
+  const hsh = (i,s)=>{ const x=Math.sin((i+1)*s)*43758.5453; return x-Math.floor(x); };
+  const drift = new Array(n);
+  for(let i = 0; i < n; i++){
+    drift[i] = {
+      ax: 2.2 + 2.6*hsh(i,12.9898), ay: 2.2 + 2.6*hsh(i,78.233),
+      fx: 0.00045 + 0.00075*hsh(i, 37.719), fy: 0.00045 + 0.00075*hsh(i, 11.135),
+      px: 6.2832*hsh(i, 45.164), py: 6.2832*hsh(i, 94.673)
+    };
+  }
+  const edges = model.edges.map(e=>({i:e.i,j:e.j,w:e.w}))
+    .sort((a,b)=>b.w-a.w).slice(0, Math.round(n*1.6));
+
+  poolCount = poolCount||0;
+  const pool=[];
+  const clearR = R*0.96 + 8;
+  let guard = 0, k = 0;
+  while(pool.length < poolCount && guard < poolCount*30 + 600){
+    guard++;
+    const u = hsh(k + 1000, 12.9898), v = hsh(k + 1000, 78.233); k++;
+    const x = 7 + u*(w - 14), y = 7 + v*(h - 14);
+    if(Math.hypot(x - cx, y - cy) < clearR) continue;
+    const ds = [];
+    for(let i = 0; i < n; i++){ ds.push([i,(pos[i].x - x)**2 + (pos[i].y - y)**2]); }
+    ds.sort((a,b)=>a[1] - b[1]);
+    const near = ds.slice(0,3).map(d=>d[0]);
+    const di = pool.length;
+    pool.push({x, y, near, near0:near[0],
+      thresh: hsh(di + 7000,45.164),                 // recruit order (0..1)
+      ax:1.4 + 1.4*hsh(di + 7000, 12.9898), ay:1.4 + 1.4*hsh(di + 7000, 78.233),
+      fx:0.0004 + 0.0006*hsh(di + 7000, 37.719), fy:0.0004 + 0.0006*hsh(di + 7000, 11.135),
+      px:6.2832*hsh(di + 7000, 45.164), py:6.2832*hsh(di + 7000, 94.673)});
+  }
+  pool.sort((a,b)=>a.thresh - b.thresh);
+  return {cx, cy, R, pos, drift, edges, pool};
+}
+
+// reverse planner
+const COST = { event:1.0, amp:2.2, gv:0.9, scaff:1.4 };
+
+function controlCost(c){
+  let k = 0;
+  k += COST.event * c.events.length;
+  k += COST.amp * c.events.reduce((s,e)=>s+(+e.amp),0);
+  k += COST.gv * Math.max(0,(+c.gv)-1);
+  if(c.scaffOn) { k += COST.scaff * Math.max(0,(+c.gB)-1) * Math.max(1,(+c.scaffB-+c.scaffA+1)); }
+  return k;
+}
+
+function maxConfig(rev){
+  const wks = [];
+  const m = Math.max(1,rev.maxEvents|0);
+  for(let k = 0; k < m; k++) wks.push({week: 1 + Math.round(k*(Math.min(rev.T-2, 12))/Math.max(1,m)), amp: rev.ampCap});
+  return { n:36, regime:rev.regime, seed:SEED, T:rev.T,
+    events:wks, gv:rev.gvCap, K:rev.Kceil,
+    scaffOn:rev.scaffAllow, scaffA:1, scaffB:6, gB:2.0 };
+}
+
+function plan(rev){
+  const tol = 0.35;                         // attendance tolerance around target
+  const now = ()=> (typeof performance!=="undefined" && performance.now) ? performance.now() : Date.now();
+  const maxC = maxConfig(rev);
+  const t0 = now();
+  const maxRes = window.PDE.simulate(cfgToOpts(maxC));
+  const simMs = Math.max(0.4, now()-t0);
+  const simBudget = Math.max(50, Math.min(400, Math.round(520/simMs)));
+  let simCount = 1;
+  const maxTerm = terminalA(maxRes.snaps);
+  if(maxTerm < rev.Astar - tol){
+    return { feasible:false, achieved:maxTerm, config:maxC, res:maxRes };
+  }
+  let best = JSON.parse(JSON.stringify(maxC));
+  const ok = (c)=>{ simCount++; return terminalA(window.PDE.simulate(cfgToOpts(c)).snaps) >= rev.Astar - tol; };
+
+  function descend(start){
+    let c = JSON.parse(JSON.stringify(start));
+    let improved=true, guard=0;
+    while(improved && guard++<60 && simCount<simBudget){
+      improved=false;
+      if(c.events.length>0){
+        const trial=JSON.parse(JSON.stringify(c));
+        let wi=0; trial.events.forEach((e,k)=>{ if(e.amp<trial.events[wi].amp) wi=k; });
+        trial.events.splice(wi,1);
+        if(ok(trial)){ c=trial; improved=true; continue; }
+      }
+      for(let k=0;k<c.events.length;k++){
+        const trial=JSON.parse(JSON.stringify(c));
+        trial.events[k].amp=+(trial.events[k].amp-0.05).toFixed(2);
+        if(trial.events[k].amp>=0.05 && ok(trial)){ c=trial; improved=true; }
+      }
+      { const trial=JSON.parse(JSON.stringify(c));
+        trial.gv=+(trial.gv-0.25).toFixed(2);
+        if(trial.gv>=1 && ok(trial)){ c=trial; improved=true; } }
+      if(c.scaffOn){
+        let trial=JSON.parse(JSON.stringify(c));
+        trial.gB=+(trial.gB-0.15).toFixed(2);
+        if(trial.gB>=1.05 && ok(trial)){ c=trial; improved=true; }
+        trial=JSON.parse(JSON.stringify(c));
+        if(trial.scaffB>trial.scaffA){ trial.scaffB-=1; if(ok(trial)){ c=trial; improved=true; } }
+        trial=JSON.parse(JSON.stringify(c)); trial.scaffOn=false;
+        if(ok(trial)){ c=trial; improved=true; }
+      }
+      { const trial=JSON.parse(JSON.stringify(c));
+        trial.K=Math.max(4, trial.K-2);
+        if(ok(trial)){ c=trial; improved=true; } }
+    }
+    return c;
+  }
+
+  best = descend(maxC);
+  let bestCost = controlCost(best);
+  for(let r=0;r<5 && simCount<simBudget;r++){
+    const pert=JSON.parse(JSON.stringify(best));
+    pert.gv=Math.min(rev.gvCap, +(pert.gv+Math.random()*0.8).toFixed(2));
+    pert.events.forEach(e=> e.amp=Math.min(rev.ampCap,+(e.amp+Math.random()*0.12).toFixed(2)));
+    if(pert.scaffOn) pert.gB=Math.min(2.0,+(pert.gB+Math.random()*0.3).toFixed(2));
+    if(Math.random()<0.4 && pert.events.length<rev.maxEvents)
+      pert.events.push({week:1+Math.floor(Math.random()*8),amp:rev.ampCap*0.6});
+    const cand=descend(pert);
+    const cc=controlCost(cand);
+    if(ok(cand) && cc<bestCost){ best=cand; bestCost=cc; }
+  }
+  const res=window.PDE.simulate(cfgToOpts(best));
+  return { feasible:true, config:best, res, cost:bestCost, achieved:terminalA(res.snaps) };
+}
+
+function lvl(x,lo,hi){ return x<lo?"light":x<hi?"moderate":"strong"; }
+function instructions(c, rev, res){
+  const steps=[];
+  const ev=c.events.slice().sort((a,b)=>a.week-b.week);
+  if(ev.length){
+    const wk=ev.map(e=>"week "+e.week).join(", ");
+    const amp=mean(ev.map(e=>+e.amp));
+    const intensity = amp<0.3?"a low-key":amp<0.5?"a solid":"a high-energy";
+    steps.push({h:`Run ${ev.length} signature event${ev.length>1?"s":""}`,
+      t:`Schedule ${intensity} push in ${wk}. These are kickoffs, showcases, or socials that pull people in the door and reset enthusiasm (external reinforcement pulse, amplitude ≈ ${amp.toFixed(2)}).`});
+  } else {
+    steps.push({h:"No events needed", t:"The network sustains itself without event pulses under these settings — focus effort on the channels below."});
+  }
+  const gvL = lvl(c.gv,1.3,2.6);
+  if(c.gv>1.05){
+    steps.push({h:`Invest ${gvL==="light"?"a little":gvL==="moderate"?"steadily":"heavily"} in visibility`,
+      t:`Get members posting, inviting, and talking the club up (visibility amplification γ\u1d65 ≈ ${(+c.gv).toFixed(1)}). This thickens friendship ties faster and makes each active member's enthusiasm reach more peers — the lever that lets a small core punch above its size.`});
+  } else {
+    steps.push({h:"Visibility can stay organic", t:"No special promotion drive is required at this target; ordinary word-of-mouth suffices (γ\u1d65 ≈ 1)."});
+  }
+  if(c.scaffOn){
+    const len=c.scaffB-c.scaffA+1;
+    steps.push({h:`Mentor the early weeks (${c.scaffA}–${c.scaffB})`,
+      t:`For the first ${len} week${len>1?"s":""}, pair newcomers with experienced leads and make small turnouts feel rewarding rather than discouraging (scaffolding γ_B ≈ ${(+c.gB).toFixed(2)}). This carries the club through the fragile below-quorum stretch before momentum takes over.`});
+  }
+  steps.push({h:`Plan room & format for ~${c.K} active at once`,
+    t:`Size the space and session format for roughly ${c.K} simultaneous participants (capacity). Too tight throttles growth; far too large dilutes the room.`});
+  // bistability / outcome framing
+  const term=terminalA(res.snaps), pk=peakA(res.snaps);
+  const Nmin = window.PDE.REGIMES[c.regime].Nmin;
+  let frame;
+  if(term>=Nmin) frame=`The plan pushes the club across its quorum (~${Nmin}) and into the self-sustaining basin — once there, members reinforce each other and the club holds with less ongoing effort.`;
+  else if(term>rev.Astar*0.6) frame=`This holds a committed core below the formal quorum (~${Nmin}). It survives on loyalty and tight ties, but sits in the fragile basin — sustained or renewed effort keeps it from sliding back.`;
+  else frame=`The target is modest; the club lands in a low but living state. Expect a gentle decline without renewal — this is the collapse regime's pull reasserting itself.`;
+  return {steps, frame, term, pk, Nmin};
+}
+
+// visualization
+const netcv=document.getElementById("netcv"), nctx=netcv.getContext("2d");
+const chartcv=document.getElementById("chartcv"), cctx=chartcv.getContext("2d");
+
+function hidpi(cv,ctx,cssW,cssH){
+  const dpr=Math.min(2,window.devicePixelRatio||1);
+  cv.width=cssW*dpr; cv.height=cssH*dpr;
+  cv.style.height=cssH+"px";
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  return {w:cssW,h:cssH};
+}
+
+function nodePos(i, t){
+  const L=S.res.layout, d=L.drift[i], base=L.pos[i];
+  const snap=S.res.snaps[S.week];
+  const settle=(snap.act[i]>0.5?1:0.25);
+  return { x: base.x + settle*d.ax*Math.sin(t*d.fx+d.px),
+           y: base.y + settle*d.ay*Math.sin(t*d.fy+d.py) };
+}
+
+function drawNetwork(snap, t){
+  t = t||0;
+  const W=netcv.clientWidth||760, H=NET_H;
+  const {w,h}=hidpi(netcv,nctx,W,H);
+  nctx.clearRect(0,0,w,h);
+  if(!S.res){ return; }
+  const L=S.res.layout, model=S.res.model, dr=L.drift;
+  const dpos=new Array(model.n);
+  for(let i=0;i<model.n;i++){
+    const d=dr[i], base=L.pos[i], settle = (snap.act[i]>0.5?1:0.25);
+    dpos[i]={ x: base.x + settle*d.ax*Math.sin(t*d.fx+d.px),
+              y: base.y + settle*d.ay*Math.sin(t*d.fy+d.py) };
+  }
+  const jn=S.res.joined||[];
+  const joinedAt=(i)=> (jn[i]===undefined?0:jn[i]) <= S.week;
+  const pool=L.pool||[], recN=(S.res.recruit?(S.res.recruit[S.week]||0):0);
+  const ppos=new Array(pool.length);
+  for(let k=0;k<pool.length;k++){
+    const q=pool[k], recruited=k<recN; let bx=q.x, by=q.y;
+    if(recruited){ const tg=dpos[q.near0]; bx=lerp(bx,tg.x,0.16); by=lerp(by,tg.y,0.16); }
+    ppos[k]={ x: bx+q.ax*Math.sin(t*q.fx+q.px), y: by+q.ay*Math.sin(t*q.fy+q.py), recruited };
+  }
+  S._lastPoolPos = ppos;
+  nctx.setLineDash([3,3]);
+  for(let k=0;k<pool.length;k++){
+    if(!ppos[k].recruited) continue;
+    const p=ppos[k], cand=pool[k].near;
+    let drawn=0;
+    for(let c=0;c<cand.length && drawn<2;c++){
+      const ti=cand[c];
+      if(!joinedAt(ti)) continue;
+      const tg=dpos[ti];
+      nctx.strokeStyle = drawn===0 ? "rgba(196,150,228,.34)" : "rgba(196,150,228,.18)";
+      nctx.lineWidth = drawn===0 ? 0.9 : 0.6;
+      nctx.beginPath(); nctx.moveTo(p.x,p.y); nctx.lineTo(tg.x,tg.y); nctx.stroke();
+      drawn++;
+    }
+    if(drawn===0){ const tg=dpos[pool[k].near0];
+      nctx.strokeStyle="rgba(196,150,228,.16)"; nctx.lineWidth=0.6;
+      nctx.beginPath(); nctx.moveTo(p.x,p.y); nctx.lineTo(tg.x,tg.y); nctx.stroke(); }
+  }
+  nctx.setLineDash([]);
+  for(let k=0;k<pool.length;k++){
+    const p=ppos[k];
+    if(S.hoverType==="pool" && S.hoverNode===k){
+      nctx.save(); nctx.shadowColor="rgba(255,255,255,.85)"; nctx.shadowBlur=10;
+      nctx.strokeStyle="#ffffff"; nctx.lineWidth=2;
+      nctx.beginPath(); nctx.arc(p.x,p.y,(p.recruited?7.4:5.6),0,7); nctx.stroke(); nctx.restore();
+    }
+    if(p.recruited){
+      nctx.globalAlpha=0.92; nctx.fillStyle="#c79ce0";
+      nctx.beginPath(); nctx.arc(p.x,p.y,3.6,0,7); nctx.fill();
+      nctx.globalAlpha=1;
+    } else {
+      nctx.globalAlpha=0.62; nctx.fillStyle="#3a3657";
+      nctx.beginPath(); nctx.arc(p.x,p.y,2.9,0,7); nctx.fill();
+      nctx.globalAlpha=1;
+    }
+  }
+  for(const e of L.edges){
+    if(!(joinedAt(e.i) && joinedAt(e.j))) continue;
+    const pa=dpos[e.j], pb=dpos[e.i];
+    const act = (snap.act[e.i]>0.5 && snap.act[e.j]>0.5);
+    const a = (act?0.34:0.07) * clamp(e.w*1.4,0.12,1);
+    nctx.strokeStyle="rgba(150,140,200,"+a+")";
+    nctx.lineWidth = act ? 0.6+e.w*1.4 : 0.5;
+    nctx.beginPath(); nctx.moveTo(pa.x,pa.y); nctx.lineTo(pb.x,pb.y); nctx.stroke();
+  }
+  const A=snap.A, alive=snap.act.filter(a=>a>0.5).length;
+  const breathe = 1 + 0.06*Math.sin(t*0.0016);
+  const hubR = 14 + Math.sqrt(Math.max(0,A))*3.0;
+  const glowR = hubR*1.7*breathe;
+  const hg=nctx.createRadialGradient(L.cx,L.cy,2,L.cx,L.cy,glowR);
+  hg.addColorStop(0,"rgba(252,166,54,.55)"); hg.addColorStop(.5,"rgba(177,42,144,.30)");
+  hg.addColorStop(1,"rgba(177,42,144,0)");
+  nctx.fillStyle=hg; nctx.beginPath(); nctx.arc(L.cx,L.cy,glowR,0,7); nctx.fill();
+  nctx.fillStyle="#1a0f1e"; nctx.strokeStyle="rgba(252,166,54,.85)"; nctx.lineWidth=2;
+  nctx.beginPath(); nctx.arc(L.cx,L.cy,hubR,0,7); nctx.fill(); nctx.stroke();
+  nctx.fillStyle="#fca636"; nctx.font="700 12px ui-monospace,monospace"; nctx.textAlign="center"; nctx.textBaseline="middle";
+  nctx.fillText("CLUB", L.cx, L.cy-5);
+  nctx.fillStyle="#ece9f5"; nctx.font="700 14px ui-monospace,monospace";
+  nctx.fillText(Math.round(A), L.cx, L.cy+9);
+  const sm=(a,b,x)=>{ x=clamp((x-a)/(b-a),0,1); return x*x*(3-2*x); };
+  for(let i=0;i<model.n;i++){
+    const p=dpos[i], m=snap.m[i], Lo=snap.L[i], active=snap.act[i]>0.5;
+    const joined = joinedAt(i);
+    const attend = clamp(snap.Pa?snap.Pa[i]:1, 0, 1);
+    const baseR = 6 + attend*3.2;
+    const em = sm(0.10, 0.52, m);
+    if(S.hoverType!=="pool" && i===S.hoverNode){
+      const rr=(joined&&!active? baseR*0.8 : 2.6+em*(baseR-2.6))+4.5;
+      nctx.save(); nctx.shadowColor="rgba(255,255,255,.9)"; nctx.shadowBlur=10;
+      nctx.strokeStyle="#ffffff"; nctx.lineWidth=2;
+      nctx.beginPath(); nctx.arc(p.x,p.y,rr,0,7); nctx.stroke(); nctx.restore();
+    }
+    if(joined && !active){
+      nctx.globalAlpha=0.58;
+      nctx.fillStyle="#2c2940"; nctx.beginPath(); nctx.arc(p.x,p.y,Math.max(4.8,baseR*0.8),0,7); nctx.fill();
+      nctx.setLineDash([3,2]);
+      nctx.strokeStyle="rgba(239,90,122,.72)"; nctx.lineWidth=1.45;
+      nctx.beginPath(); nctx.arc(p.x,p.y,Math.max(6.8,baseR*0.8+2.4),0,7); nctx.stroke();
+      nctx.strokeStyle="rgba(140,135,170,.55)"; nctx.lineWidth=.9;
+      nctx.beginPath(); nctx.arc(p.x,p.y,Math.max(4.8,baseR*0.8),0,7); nctx.stroke(); nctx.setLineDash([]);
+      nctx.globalAlpha=1; continue;
+    }
+    const r  = 2.6 + em*(baseR-2.6);
+    const col= emColor(m, em);
+    const pa = (0.55 + 0.45*em) * (0.5 + 0.5*clamp(attend*1.5,0,1));
+    if(em>0.6 && m>0.55 && attend>0.3){
+      nctx.globalAlpha=(m-0.55)*0.5*attend*em;
+      nctx.fillStyle=plasma(m); nctx.beginPath(); nctx.arc(p.x,p.y,r+5,0,7); nctx.fill();
+      nctx.globalAlpha=1;
+    }
+    const ringAlpha = (em<0.45 || m<0.22) ? 0.66 : 0.30;
+    const ringW = (em<0.45 || m<0.22) ? 1.35 : 1.05;
+    nctx.globalAlpha=ringAlpha;
+    nctx.strokeStyle = joined ? "rgba(252,166,54,.48)" : "rgba(122,162,255,.68)";
+    nctx.lineWidth = ringW;
+    nctx.beginPath(); nctx.arc(p.x,p.y,Math.max(5.8,r+5.0),0,7); nctx.stroke();
+    nctx.globalAlpha=1;
+    nctx.globalAlpha=Math.max(pa, em<0.30 ? 0.42 : pa); nctx.fillStyle=col;
+    nctx.beginPath(); nctx.arc(p.x,p.y,Math.max(r, em<0.20 ? 3.2 : r),0,7); nctx.fill();
+    if(em>0.18){ nctx.strokeStyle="rgba(0,0,0,.35)"; nctx.lineWidth=1;
+      nctx.beginPath(); nctx.arc(p.x,p.y,r,0,7); nctx.stroke(); }
+    if(Lo>0.02 && em>0.06){
+      nctx.globalAlpha=em;
+      nctx.strokeStyle="rgba(252,200,80,.95)"; nctx.lineWidth=2.4; nctx.lineCap="round";
+      nctx.beginPath(); nctx.arc(p.x,p.y,r+3.2,-Math.PI/2,-Math.PI/2+Lo*2*Math.PI); nctx.stroke();
+      nctx.lineCap="butt";
+    }
+    nctx.globalAlpha=1;
+  }
+}
+
+function drawChart(weekIdx){
+  const W=chartcv.clientWidth||760, H=CHART_H;
+  const {w,h}=hidpi(chartcv,cctx,W,H);
+  cctx.clearRect(0,0,w,h);
+  if(!S.res) return;
+  const snaps=S.res.snaps, T=snaps.length;
+  const padL=38,padR=14,padT=14,padB=24;
+  const plotW=w-padL-padR, plotH=h-padT-padB;
+  const xs=(t)=>padL + (T>1? t/(T-1):0)*plotW;
+  const As=snaps.map(s=>s.A);
+  let maxA=Math.max(8, ...As, S.refLines.Nmin||0, S.refLines.Astar||0)*1.12;
+  const ya=(v)=>padT + plotH - (v/maxA)*plotH;
+  const y01=(v)=>padT + plotH - clamp(v,0,1)*plotH;
+
+  cctx.strokeStyle="rgba(255,255,255,.05)"; cctx.lineWidth=1; cctx.font="500 9px ui-monospace,monospace";
+  cctx.fillStyle="#6f6987"; cctx.textAlign="right"; cctx.textBaseline="middle";
+  const gy=4;
+  for(let k=0;k<=gy;k++){
+    const v=maxA*k/gy, y=ya(v);
+    cctx.beginPath(); cctx.moveTo(padL,y); cctx.lineTo(w-padR,y); cctx.stroke();
+    cctx.fillText(Math.round(v), padL-6, y);
+  }
+  cctx.textAlign="center"; cctx.textBaseline="top";
+  for(let t=0;t<T;t+=Math.ceil(T/9)){
+    cctx.fillText(t, xs(t), h-padB+6);
+  }
+
+  if(S.overlays.ref){
+    if(S.refLines.Nmin!=null){
+      const y=ya(S.refLines.Nmin);
+      cctx.strokeStyle="rgba(160,155,180,.5)"; cctx.setLineDash([5,4]); cctx.lineWidth=1;
+      cctx.beginPath(); cctx.moveTo(padL,y); cctx.lineTo(w-padR,y); cctx.stroke(); cctx.setLineDash([]);
+      cctx.fillStyle="rgba(160,155,180,.8)"; cctx.textAlign="left"; cctx.textBaseline="bottom";
+      cctx.font="600 9px ui-monospace,monospace";
+      cctx.fillText("quorum "+S.refLines.Nmin, padL+4, y-2);
+    }
+    if(S.refLines.Astar!=null){
+      const y=ya(S.refLines.Astar);
+      cctx.strokeStyle="rgba(225,100,98,.75)"; cctx.setLineDash([6,3]); cctx.lineWidth=1.3;
+      cctx.beginPath(); cctx.moveTo(padL,y); cctx.lineTo(w-padR,y); cctx.stroke(); cctx.setLineDash([]);
+      cctx.fillStyle="rgba(252,180,120,.95)"; cctx.textAlign="right"; cctx.textBaseline="bottom";
+      cctx.font="600 9px ui-monospace,monospace";
+      cctx.fillText("target "+(+S.refLines.Astar).toFixed(1), w-padR-4, y-2);
+    }
+  }
+
+  const ovDefs=[["m","m",[122,162,255]],["L","L",[95,208,160]],["F","F",[239,154,90]]];
+  for(const [key,fld,rgb] of ovDefs){
+    if(!S.overlays[key]) continue;
+    cctx.strokeStyle="rgba("+rgb.join(",")+",.85)"; cctx.lineWidth=1.6;
+    cctx.beginPath();
+    snaps.forEach((s,t)=>{ const v=mean(s[fld]); const X=xs(t),Y=y01(v); t?cctx.lineTo(X,Y):cctx.moveTo(X,Y); });
+    cctx.stroke();
+  }
+
+  if(S.overlays.A && S.res.ensemble && S.res.ensemble.A_q1 && S.res.ensemble.A_q3){
+    cctx.beginPath();
+    S.res.ensemble.A_q3.forEach((v,t)=>{ const X=xs(t),Y=ya(v); t?cctx.lineTo(X,Y):cctx.moveTo(X,Y); });
+    for(let t=T-1;t>=0;t--){ cctx.lineTo(xs(t),ya(S.res.ensemble.A_q1[t])); }
+    cctx.closePath();
+    cctx.fillStyle="rgba(252,166,54,.13)"; cctx.fill();
+    cctx.strokeStyle="rgba(252,166,54,.23)"; cctx.lineWidth=1; cctx.stroke();
+  }
+
+  if(S.overlays.A){
+    const grad=cctx.createLinearGradient(0,padT,0,padT+plotH);
+    grad.addColorStop(0,"rgba(252,166,54,.30)"); grad.addColorStop(1,"rgba(252,166,54,0)");
+    cctx.beginPath(); cctx.moveTo(xs(0),ya(0));
+    snaps.forEach((s,t)=>cctx.lineTo(xs(t),ya(s.A)));
+    cctx.lineTo(xs(T-1),ya(0)); cctx.closePath(); cctx.fillStyle=grad; cctx.fill();
+    cctx.beginPath();
+    snaps.forEach((s,t)=>{ const X=xs(t),Y=ya(s.A); t?cctx.lineTo(X,Y):cctx.moveTo(X,Y); });
+    cctx.strokeStyle="#fca636"; cctx.lineWidth=2.2; cctx.stroke();
+    snaps.forEach((s,t)=>{ cctx.fillStyle="#fca636"; cctx.beginPath(); cctx.arc(xs(t),ya(s.A),2,0,7); cctx.fill(); });
+  }
+
+  if(S.hoverType!=="pool" && S.hoverNode!=null && S.hoverNode<S.res.model.n){
+    const i=S.hoverNode;
+    cctx.strokeStyle="rgba(255,255,255,.92)"; cctx.lineWidth=2; cctx.setLineDash([]);
+    cctx.beginPath();
+    snaps.forEach((s,t)=>{ const X=xs(t),Y=y01(s.m[i]); t?cctx.lineTo(X,Y):cctx.moveTo(X,Y); });
+    cctx.stroke();
+    cctx.strokeStyle="rgba(252,200,80,.85)"; cctx.lineWidth=1.5; cctx.setLineDash([4,3]);
+    cctx.beginPath();
+    snaps.forEach((s,t)=>{ const X=xs(t),Y=y01(s.L[i]); t?cctx.lineTo(X,Y):cctx.moveTo(X,Y); });
+    cctx.stroke(); cctx.setLineDash([]);
+    const mx=xs(weekIdx), myv=y01(snaps[weekIdx].m[i]);
+    cctx.fillStyle="#fff"; cctx.beginPath(); cctx.arc(mx,myv,3.4,0,7); cctx.fill();
+    cctx.strokeStyle="#08070d"; cctx.lineWidth=1.3; cctx.stroke();
+    cctx.fillStyle="rgba(255,255,255,.95)"; cctx.font="700 9px ui-monospace,monospace";
+    cctx.textAlign="left"; cctx.textBaseline="bottom";
+    cctx.fillText("student #"+(i+1)+" · motivation (solid) · loyalty (dashed)", padL+4, padT+10);
+  }
+
+  // playhead
+  const X=xs(weekIdx);
+  cctx.strokeStyle="rgba(236,233,245,.7)"; cctx.lineWidth=1.4;
+  cctx.beginPath(); cctx.moveTo(X,padT); cctx.lineTo(X,padT+plotH); cctx.stroke();
+  const cur=snaps[weekIdx];
+  cctx.fillStyle="#fff"; cctx.beginPath(); cctx.arc(X,ya(cur.A),4,0,7); cctx.fill();
+  cctx.strokeStyle="#08070d"; cctx.lineWidth=1.5; cctx.stroke();
+}
+
+// stat readouts
+function updateStats(){
+  if(!S.res) return;
+  const s=S.res.snaps[S.week], n=S.res.model.n, jn=S.res.joined||[];
+  let core=0;
+  if(S.resultMode==="ensemble"){
+    core = s.act ? s.act.reduce((a,b)=>a+b,0) : 0;
+  } else {
+    for(let i=0;i<n;i++){ if((jn[i]??Infinity)<=S.week && s.act[i]>0.5) core++; }
+  }
+  const recruited = S.res.recruit ? (S.res.recruit[S.week]||0) : 0;
+  const members = Math.round(core + recruited);
+  const reach=Math.round(s.m.filter(x=>x>0.4).length/n*100);
+  document.getElementById("sA").textContent=Math.round(s.A);
+  document.getElementById("sM").textContent=mean(s.m).toFixed(2);
+  document.getElementById("sAlive").innerHTML=String(members);
+  document.getElementById("sReach").innerHTML=reach+'<small>%</small>';
+  document.getElementById("vizttl").textContent = S.resultMode==="ensemble" ? "Average network state · week "+S.week : "Network state · week "+S.week;
+  document.getElementById("wklabel").textContent="wk "+S.week+" / "+(S.res.snaps.length-1);
+  document.getElementById("scrub").value=S.week;
+}
+
+function updateTimelineControls(){
+  const bar=document.getElementById("transportbar");
+  if(!bar) return;
+  bar.style.display = S.res ? "flex" : "none";
+}
+
+function renderFrame(){ updateTimelineControls(); const s=S.res.snaps[S.week]; drawNetwork(s, S.clock); drawChart(S.week); updateStats(); }
+
+// animation loop
+function ambient(ts){
+  S.clock = ts || 0;
+  if(S.res){ drawNetwork(S.res.snaps[S.week], S.clock); }
+  if(S.hoverNode!=null && S.res){
+    const tip=document.getElementById("nodetip");
+    const p = S.hoverType==="pool"
+      ? ((S._lastPoolPos && S._lastPoolPos[S.hoverNode]) || null)
+      : (S.hoverNode<S.res.model.n ? nodePos(S.hoverNode,S.clock) : null);
+    if(p){
+      placeTip(p);
+      const key=S.hoverType+":"+S.hoverNode+":"+S.week;
+      if(S._tipKey!==key){ S._tipKey=key; tip.innerHTML=tipHTML(S.hoverNode); }
+    }
+  }
+  if(typeof requestAnimationFrame!=='undefined') requestAnimationFrame(ambient);
+}
+
+// simulation runners
+function computeRecruitment(snaps, cfg, poolCount){
+  const rec=new Array(snaps.length);
+  const bridgeBoost = (+cfg.outTies||0) * 0.35 + (+cfg.acquaint||0)*0.07;
+  const perAttendee = 0.95 + bridgeBoost;
+  const evPer       = 3.0  + bridgeBoost*1.8;
+  for(let t=0;t<snaps.length;t++){
+    let ev=0; for(const e of cfg.events){ if(e.week<=t) ev += (+e.amp)*Math.exp(-(t-e.week)/2.5); }
+    const drawn = snaps[t].A*perAttendee + ev*evPer;
+    rec[t]=Math.min(poolCount, Math.round(Math.max(0,drawn)));
+  }
+  return rec;
+}
+function prepRunResult(res, cfg){
+  const n=res.model.n, joinTH=0.4;
+  res.joined=new Array(n).fill(Infinity);
+  res.snaps.forEach((s,t)=>{ for(let i=0;i<n;i++){ if(res.joined[i]===Infinity && s.Pa && s.Pa[i]>joinTH) res.joined[i]=t; } });
+  const outside=Math.max(0,(+cfg.body||0)-n);
+  res.layout=buildLayout(res.model, netcv.clientWidth||760, NET_H, outside);
+  res.recruit=computeRecruitment(res.snaps, cfg, res.layout.pool.length);
+  return res;
+}
+function runSim(cfg){
+  const res=prepRunResult(window.PDE.simulate(cfgToOpts(cfg)), cfg);
+  S.res=res;
+  S.refLines.Nmin = window.PDE.REGIMES[cfg.regime].Nmin;
+  document.getElementById("scrub").max=res.snaps.length-1;
+  return res;
+}
+function quantile(vals, q){
+  if(!vals.length) return 0;
+  const a=vals.slice().sort((x,y)=>x-y);
+  const pos=(a.length-1)*q, lo=Math.floor(pos), hi=Math.ceil(pos);
+  if(lo===hi) return a[lo];
+  return a[lo] + (a[hi]-a[lo])*(pos-lo);
+}
+function averageRuns(runs, cfg){
+  const T=runs[0].snaps.length, n=runs[0].model.n;
+  const fields=["m","L","F","E","S","act","Pa","atil","alpha","Phi"];
+  const snaps=[];
+  const AByWeek=Array.from({length:T},()=>[]);
+  for(let t=0;t<T;t++){
+    const snap={week:t,A:0};
+    for(const f of fields) snap[f]=new Array(n).fill(0);
+    for(const run of runs){
+      const s=run.snaps[t];
+      snap.A += s.A; AByWeek[t].push(s.A);
+      for(const f of fields){
+        if(!s[f]) continue;
+        for(let i=0;i<n;i++) snap[f][i]+=s[f][i];
+      }
+    }
+    snap.A/=runs.length;
+    for(const f of fields) for(let i=0;i<n;i++) snap[f][i]/=runs.length;
+    snaps.push(snap);
+  }
+  const finals=runs.map(r=>terminalA(r.snaps));
+  const meanFinal=mean(finals);
+  let repIdx=0, best=Infinity;
+  finals.forEach((x,i)=>{ const d=Math.abs(x-meanFinal); if(d<best){ best=d; repIdx=i; } });
+  const res={snaps, model:runs[repIdx].model};
+  prepRunResult(res, cfg);
+  res.ensemble={
+    trials:runs.length,
+    representative:repIdx+1,
+    meanFinal,
+    q1Final:quantile(finals,0.25),
+    q3Final:quantile(finals,0.75),
+    survivalRate:finals.filter(x=>x>=window.PDE.REGIMES[cfg.regime].Nmin).length/runs.length,
+    A_q1:AByWeek.map(v=>quantile(v,0.25)),
+    A_q3:AByWeek.map(v=>quantile(v,0.75)),
+    A_min:AByWeek.map(v=>Math.min(...v)),
+    A_max:AByWeek.map(v=>Math.max(...v))
+  };
+  return res;
+}
+function setProgress(done,total,runs){
+  const box=document.getElementById("progressbox"); if(!box) return;
+  box.classList.add("on");
+  const pct=total?Math.round(done/total*100):0;
+  document.getElementById("progfill").style.width=pct+"%";
+  document.getElementById("progcount").textContent=done+" / "+total;
+  document.getElementById("progpct").textContent=pct+"%";
+  if(runs && runs.length){
+    const finals=runs.map(r=>terminalA(r.snaps));
+    const pcfg=S._progressCfg || S.cfg;
+    const reg=pcfg.regime;
+    const surv=finals.filter(x=>x>=window.PDE.REGIMES[reg].Nmin).length/finals.length;
+    document.getElementById("progmean").textContent=mean(finals).toFixed(1);
+    document.getElementById("progsurv").textContent=Math.round(surv*100)+"%";
+  }
+}
+function runSampleSimulation(){
+  if(S.mode!=="forward" || S.running) return;
+  readForwardCfg();
+  stop(); clearHover();
+  S.sampleCounter++;
+  const cfgK=JSON.parse(JSON.stringify(S.cfg));
+  cfgK.seed=(+S.cfg.seed||SEED) + S.sampleCounter*9973 + Math.floor(Math.random()*9973);
+  S.resultMode="sample";
+  S.dirty=false;
+  const box=document.getElementById("progressbox"); if(box) box.classList.remove("on");
+  const btn=document.getElementById("samplebtn"); if(btn){ btn.disabled=true; btn.textContent="Sampling..."; }
+  runSim(cfgK);
+  S.week=0;
+  renderFrame();
+  renderForwardOutcome();
+  const df=document.getElementById("dirtyflag"); if(df) df.innerHTML="";
+  if(btn){ btn.disabled=false; btn.textContent="▶ Run sample"; }
+  play();
+}
+
+async function runEnsembleSimulation(){
+  if(S.mode!=="forward" || S.running) return;
+  readForwardCfg();
+  stop(); clearHover();
+  S.running=true; S.dirty=false;
+  S.resultMode="ensemble";
+  S._progressCfg=S.cfg;
+  const btn=document.getElementById("runbtn"); if(btn){ btn.disabled=true; btn.textContent="Running trials..."; }
+  const sbtn=document.getElementById("samplebtn"); if(sbtn) sbtn.disabled=true;
+  const trials=Math.max(1,Math.round(+S.cfg.trials||1));
+  const runs=[];
+  setProgress(0,trials,runs);
+  const batch = trials >= 500 ? 10 : trials >= 100 ? 5 : 2;
+  for(let k=0;k<trials;k++){
+    const cfgK=JSON.parse(JSON.stringify(S.cfg));
+    cfgK.seed=(+S.cfg.seed||SEED) + k*9973;
+    runs.push(window.PDE.simulate(cfgToOpts(cfgK)));
+    if(k % batch === batch-1 || k===trials-1){
+      setProgress(k+1,trials,runs);
+      const preview=prepRunResult({snaps:runs[runs.length-1].snaps, model:runs[runs.length-1].model}, S.cfg);
+      S.res=preview; S.week=(k % preview.snaps.length);
+      renderFrame();
+      await new Promise(requestAnimationFrame);
+    }
+  }
+  S.res=averageRuns(runs,S.cfg);
+  S.resultMode="ensemble";
+  S.refLines.Nmin = window.PDE.REGIMES[S.cfg.regime].Nmin;
+  document.getElementById("scrub").max=S.res.snaps.length-1;
+  S.week=S.res.snaps.length-1;
+  renderFrame();
+  renderForwardOutcome();
+  const df=document.getElementById("dirtyflag"); if(df) df.innerHTML="";
+  if(btn){ btn.disabled=false; btn.textContent="▶ Run simulation"; }
+  const sbtn2=document.getElementById("samplebtn"); if(sbtn2) sbtn2.disabled=false;
+  S.running=false;
+}
+
+function setPlanButtonsEnabled(enabled){
+  const a=document.getElementById("plansamplebtn"), b=document.getElementById("plansimbtn");
+  if(a) a.disabled=!enabled;
+  if(b) b.disabled=!enabled;
+}
+function setPlanStatus(msg){
+  const el=document.getElementById("planrunstatus");
+  if(el) el.innerHTML=msg||"";
+}
+function runPlanSample(){
+  if(S.mode!=="reverse" || S.running || !S.planCfg) return;
+  stop(); clearHover();
+  S.sampleCounter++;
+  const cfgK=JSON.parse(JSON.stringify(S.planCfg));
+  cfgK.seed=(+cfgK.seed||SEED) + S.sampleCounter*9973 + Math.floor(Math.random()*9973);
+  S.resultMode="sample";
+  const box=document.getElementById("progressbox"); if(box) box.classList.remove("on");
+  const btn=document.getElementById("plansamplebtn"); if(btn){ btn.disabled=true; btn.textContent="Sampling plan..."; }
+  runSim(cfgK);
+  S.refLines.Astar=S.rev.Astar;
+  S.week=0;
+  renderFrame();
+  setPlanStatus('<div class="dirtyflag">Showing one randomized sample of the proposed plan. Use the timeline or press play to inspect it week by week.</div>');
+  if(btn){ btn.disabled=false; btn.textContent="Run sample plan"; }
+  play();
+}
+async function runPlanEnsemble(){
+  if(S.mode!=="reverse" || S.running || !S.planCfg) return;
+  stop(); clearHover();
+  S.running=true;
+  S.resultMode="ensemble";
+  const cfg=JSON.parse(JSON.stringify(S.planCfg));
+  S._progressCfg=cfg;
+  const btn=document.getElementById("plansimbtn"); if(btn){ btn.disabled=true; btn.textContent="Running plan trials..."; }
+  const sbtn=document.getElementById("plansamplebtn"); if(sbtn) sbtn.disabled=true;
+  const pbtn=document.getElementById("planbtn"); if(pbtn) pbtn.disabled=true;
+  const trials=Math.max(1,Math.round(+cfg.trials||1));
+  const runs=[];
+  setPlanStatus('<div class="dirtyflag">Running the proposed plan across randomized networks...</div>');
+  setProgress(0,trials,runs);
+  const batch = trials >= 500 ? 10 : trials >= 100 ? 5 : 2;
+  for(let k=0;k<trials;k++){
+    const cfgK=JSON.parse(JSON.stringify(cfg));
+    cfgK.seed=(+cfg.seed||SEED) + k*9973;
+    runs.push(window.PDE.simulate(cfgToOpts(cfgK)));
+    if(k % batch === batch-1 || k===trials-1){
+      setProgress(k+1,trials,runs);
+      const preview=prepRunResult({snaps:runs[runs.length-1].snaps, model:runs[runs.length-1].model}, cfg);
+      S.res=preview; S.week=(k % preview.snaps.length);
+      renderFrame();
+      await new Promise(requestAnimationFrame);
+    }
+  }
+  S.res=averageRuns(runs,cfg);
+  S.resultMode="ensemble";
+  S.refLines.Nmin=window.PDE.REGIMES[cfg.regime].Nmin;
+  S.refLines.Astar=S.rev.Astar;
+  document.getElementById("scrub").max=S.res.snaps.length-1;
+  S.week=S.res.snaps.length-1;
+  renderFrame();
+  const ens=S.res.ensemble;
+  setPlanStatus(`<div class="dirtyflag">Showing the proposed plan averaged across <b>${ens.trials}</b> randomized networks. Survival probability: <b>${Math.round(ens.survivalRate*100)}%</b>. Scrub or play the timeline to inspect average weekly states.</div>`);
+  if(btn){ btn.disabled=false; btn.textContent="Run simulation plan"; }
+  if(sbtn) sbtn.disabled=false;
+  if(pbtn) pbtn.disabled=false;
+  S.running=false;
+}
+
+// playback
+let timer=null;
+function play(){
+  if(S.playing){ stop(); return; }
+  if(!S.res) return;
+  if(S.week>=S.res.snaps.length-1) S.week=0;
+  S.playing=true; setPlayIcon(true);
+  timer=setInterval(()=>{
+    S.week++;
+    if(S.week>=S.res.snaps.length-1){ S.week=S.res.snaps.length-1; renderFrame(); stop(); return; }
+    renderFrame();
+  }, S.resultMode==="ensemble" ? 260 : 360);
+}
+function stop(){ S.playing=false; setPlayIcon(false); if(timer){clearInterval(timer);timer=null;} }
+function setPlayIcon(p){
+  document.getElementById("playicon").innerHTML = p
+    ? '<path d="M6 5h4v14H6zM14 5h4v14h-4z"/>'
+    : '<path d="M8 5v14l11-7z"/>';
+}
+
+// control panels
+const controls=document.getElementById("controls");
+
+function srow(label, id, min, max, step, v, sub){
+  const subhtml = sub ? ` <span style="color:var(--ink3)">${sub}</span>` : '';
+  return `<div class="row"><label>${label}${subhtml}</label>
+    <span class="sgrp">
+      <input type="range" id="${id}" min="${min}" max="${max}" step="${step}" value="${v}">
+      <input type="number" class="valbox" id="${id}v" min="${min}" max="${max}" step="${step}" value="${v}">
+    </span></div>`;
+}
+function wireSrow(id, fmt, onset){
+  const s=document.getElementById(id), b=document.getElementById(id+"v");
+  if(!s||!b) return;
+  s.addEventListener("input",()=>{ b.value = fmt?fmt(s.value):s.value; onset&&onset(s.value); });
+  b.addEventListener("input",()=>{
+    let x=parseFloat(b.value); if(isNaN(x)) return;
+    const mn=parseFloat(s.min), mx=parseFloat(s.max);
+    x=Math.max(mn,Math.min(mx,x)); s.value=x; onset&&onset(s.value);
+  });
+  b.addEventListener("change",()=>{ b.value = fmt?fmt(s.value):s.value; }); // snap to clamped on blur
+}
+
+function eventEditorHTML(events){
+  let h='<div class="events" id="eventlist">';
+  events.forEach((e,i)=>{
+    h+=`<div class="ev" data-i="${i}">
+      <div class="mini"><span>wk</span><input type="number" min="0" max="52" value="${e.week}" data-f="week"></div>
+      <div class="mini"><span>amp</span><input type="number" min="0" max="2" step="0.05" value="${e.amp}" data-f="amp"></div>
+      <button class="del" title="remove">×</button></div>`;
+  });
+  h+='</div><button class="chip" id="addev" style="margin-top:8px">+ add event</button>';
+  return h;
+}
+
+function buildForward(){
+  const c=S.cfg;
+  controls.innerHTML=`
+    <div class="panel">
+      <h2><span class="dot"></span>Reference scenarios</h2>
+      <div class="hint">Load a worked example, then tweak anything.</div>
+      <div class="chips">
+        <button class="chip" data-preset="A"><b>A</b> naive collapse</button>
+        <button class="chip" data-preset="B"><b>B</b> stable</button>
+        <button class="chip" data-preset="C"><b>C</b> rescue</button>
+      </div>
+    </div>
+    <div class="panel runpanel">
+      <h2><span class="dot"></span>Run controls</h2>
+      <div class="hint">Run a single animated network, or average many randomized trials.</div>
+      ${srow("Trials","trials",1,1000,1,c.trials,"(Monte Carlo)")}
+      <div class="runbuttons">
+        <button class="btn" id="samplebtn">▶ Run sample</button>
+        <button class="btn primary" id="runbtn">▶ Run simulation</button>
+      </div>
+      <div class="progressbox" id="progressbox">
+        <div class="proghead"><span>Running trials <b id="progcount">0 / 0</b></span><span id="progpct">0%</span></div>
+        <div class="progbar"><div class="progfill" id="progfill"></div></div>
+        <div class="progmini"><span>live final mean: <b id="progmean">—</b></span><span>survival: <b id="progsurv">—</b></span></div>
+      </div>
+      <div id="dirtyflag"></div>
+    </div>
+    <div class="panel">
+      <h2><span class="dot"></span>Setup</h2>
+      ${srow("Students (network size)","n",8,120,2,c.n)}
+      <div class="row"><label>Regime</label>
+        <div class="seg" id="regime" style="width:260px">
+          <button data-r="collapse" class="${c.regime==='collapse'?'on':''}">Collapse-prone</button>
+          <button data-r="stabilize" class="${c.regime==='stabilize'?'on':''}">Stabilizing</button>
+        </div></div>
+      <div class="hint">Collapse-prone clubs need a high quorum and lose steam easily; stabilizing clubs self-reinforce at lower turnout.</div>
+      ${srow("Weeks to simulate","T",4,52,1,c.T)}
+    </div>
+    <div class="panel">
+      <h2><span class="dot"></span>Social network &amp; reach</h2>
+      <div class="hint">How students are connected, and how far the club can reach beyond its core.</div>
+      ${srow("Friend-group size","groupSize",3,16,1,c.groupSize,"(communities)")}
+      ${srow("Close ties / student","inTies",0,16,1,c.inTies,"(inside group)")}
+      ${srow("Bridge ties / student","outTies",0,8,0.5,(+c.outTies).toFixed(1),"(across groups)")}
+      ${srow("Extra acquaintance ties","acquaint",0,40,1,c.acquaint,"(global weak ties)")}
+      ${srow("Public population","body",0,700,10,c.body,"(whole school)")}
+      <div class="hint" style="margin-top:8px">Close ties stay inside friend groups; bridge ties jump between groups. Both are randomized each run.</div>
+    </div>
+    <div class="panel">
+      <h2><span class="dot"></span>Events &amp; momentum</h2>
+      <div class="hint">Kickoffs, showcases, socials — each gives a decaying enthusiasm pulse.</div>
+      ${eventEditorHTML(c.events)}
+      <div style="margin-top:14px">
+        ${srow("Visibility&nbsp;γ<sub>v</sub>","gv",1,8,0.1,(+c.gv).toFixed(1),"(promotion)")}
+        ${srow("Capacity&nbsp;K","K",2,100,1,c.K,"(room size)")}
+      </div>
+    </div>
+    <div class="panel">
+      <h2><span class="dot"></span>Early-weeks mentoring</h2>
+      <div class="row"><label class="toggle"><input type="checkbox" id="scaffOn" ${c.scaffOn?'checked':''}><span class="sw"></span>Scaffolding push</label></div>
+      <div class="hint">Pair newcomers with leads and reward small early turnouts, carrying the club through the fragile start.</div>
+      <div id="scaffBox" style="${c.scaffOn?'':'opacity:.4;pointer-events:none'}">
+        <div class="row"><label>Window (weeks)</label>
+          <span style="display:flex;gap:7px;align-items:center">
+            <input type="number" class="valbox" id="scaffA" min="0" max="52" value="${c.scaffA}">
+            <span style="color:var(--ink3)">to</span>
+            <input type="number" class="valbox" id="scaffB" min="0" max="52" value="${c.scaffB}"></span></div>
+        ${srow("Mentoring strength&nbsp;γ<sub>B</sub>","gB",1,3,0.05,(+c.gB).toFixed(2))}
+      </div>
+    </div>
+    <div class="panel" id="outpanel" style="margin-top:16px"></div>`;
+  wireForward();
+  renderForwardOutcome();
+  if(S.dirty){ const df=document.getElementById("dirtyflag"); if(df) df.innerHTML='<div class="dirtyflag">Settings changed. Press <b>Run sample</b> for one animated network or <b>Run simulation</b> for aggregate averages.</div>'; }
+}
+
+function buildReverse(){
+  const r=S.rev;
+  controls.innerHTML=`
+    <div class="panel">
+      <h2><span class="dot"></span>Goal</h2>
+      <div class="hint">Tell the planner the club you want by end of term; it searches for the lowest-effort way to get there.</div>
+      ${srow("Target steady attendance","Astar",1,60,0.5,(+r.Astar).toFixed(1))}
+      <div class="row"><label>Regime</label>
+        <div class="seg" id="rregime" style="width:260px">
+          <button data-r="collapse" class="${r.regime==='collapse'?'on':''}">Collapse-prone</button>
+          <button data-r="stabilize" class="${r.regime==='stabilize'?'on':''}">Stabilizing</button>
+        </div></div>
+      ${srow("Weeks available","rT",4,52,1,r.T)}
+    </div>
+    <div class="panel runpanel planrunpanel">
+      <h2><span class="dot"></span>Planner action</h2>
+      <div class="hint">After setting your goal and budget, press this to search for the lightest plan that still reaches the target.</div>
+      <button class="btn primary" id="planbtn">Find a plan</button>
+      <div class="hint" style="margin-top:9px">After a plan is found, test it with one animated network or an aggregate simulation.</div>
+      <div class="runpair" style="margin-top:8px">
+        <button class="btn" id="plansamplebtn" disabled>Run sample plan</button>
+        <button class="btn primary" id="plansimbtn" disabled>Run simulation plan</button>
+      </div>
+      <div class="progressbox" id="progressbox">
+        <div class="proghead"><span>Running trials <b id="progcount">0 / 0</b></span><span id="progpct">0%</span></div>
+        <div class="progbar"><div class="progfill" id="progfill"></div></div>
+        <div class="progmini"><span>live final mean: <b id="progmean">—</b></span><span>survival: <b id="progsurv">—</b></span></div>
+      </div>
+      <div id="planrunstatus"></div>
+    </div>
+    <div class="panel">
+      <h2><span class="dot"></span>What you're willing to spend</h2>
+      ${srow("Max events","maxEvents",0,12,1,r.maxEvents)}
+      ${srow("Max event intensity","ampCap",0.1,1.5,0.05,(+r.ampCap).toFixed(2))}
+      ${srow("Max visibility γ<sub>v</sub>","gvCap",1,8,0.1,(+r.gvCap).toFixed(1))}
+      ${srow("Room capacity ceiling","Kceil",2,100,1,r.Kceil)}
+      <div class="row"><label class="toggle"><input type="checkbox" id="scaffAllow" ${r.scaffAllow?'checked':''}><span class="sw"></span>Allow early-weeks mentoring</label></div>
+    </div>
+    <div class="panel" id="planpanel" style="margin-top:11px">
+      <div class="empty">Set a target and budget, then press <b>Find a plan</b>. The planner first checks whether the goal is reachable, then strips back to the cheapest plan that still hits it.</div>
+    </div>`;
+  wireReverse();
+}
+
+// wiring
+function readForwardCfg(){
+  const c=S.cfg;
+  c.n=+val("n"); c.T=+val("T"); c.gv=+val("gv"); c.K=+val("K");
+  c.groupSize=+val("groupSize"); c.inTies=+val("inTies"); c.outTies=+val("outTies"); c.acquaint=+val("acquaint"); c.body=+val("body"); c.trials=+val("trials");
+  c.scaffOn=document.getElementById("scaffOn").checked;
+  c.scaffA=+val("scaffA"); c.scaffB=+val("scaffB"); c.gB=+val("gB");
+  const evs=[];
+  document.querySelectorAll("#eventlist .ev").forEach(row=>{
+    const wk=+row.querySelector('[data-f="week"]').value;
+    const amp=+row.querySelector('[data-f="amp"]').value;
+    evs.push({week:wk,amp:amp});
+  });
+  c.events=evs;
+}
+const val=(id)=>document.getElementById(id).value;
+
+function wireForward(){
+  wireSrow("n",null,markDirty); wireSrow("T",null,markDirty);
+  wireSrow("gv",v=>(+v).toFixed(1),markDirty); wireSrow("K",null,markDirty);
+  wireSrow("gB",v=>(+v).toFixed(2),markDirty);
+  wireSrow("groupSize",null,markDirty); wireSrow("inTies",null,markDirty); wireSrow("outTies",v=>(+v).toFixed(1),markDirty);
+  wireSrow("acquaint",null,markDirty); wireSrow("body",null,markDirty); wireSrow("trials",null,markDirty);
+  ["scaffA","scaffB"].forEach(id=>{ const el=document.getElementById(id);
+    if(el) el.addEventListener("input",markDirty); });
+  controls.querySelectorAll("[data-preset]").forEach(b=>b.addEventListener("click",()=>{
+    const p=PRESETS[b.dataset.preset];
+    S.cfg=Object.assign(JSON.parse(JSON.stringify(DEF.forward)),{
+      regime:p.regime, events:JSON.parse(JSON.stringify(p.events)), gv:p.gv, K:p.K,
+      scaffOn:p.scaffOn, scaffA:p.scaffA, scaffB:p.scaffB, gB:p.gB,
+      groupSize:p.groupSize, inTies:p.inTies, outTies:p.outTies, acquaint:p.acquaint, body:p.body, trials:p.trials });
+    buildForward();
+  }));
+  controls.querySelectorAll("#regime button").forEach(b=>b.addEventListener("click",()=>{
+    controls.querySelectorAll("#regime button").forEach(x=>x.classList.remove("on"));
+    b.classList.add("on"); S.cfg.regime=b.dataset.r; markDirty();
+  }));
+  document.getElementById("scaffOn").addEventListener("change",e=>{
+    const box=document.getElementById("scaffBox");
+    box.style.opacity=e.target.checked?"1":".4"; box.style.pointerEvents=e.target.checked?"auto":"none";
+    markDirty();
+  });
+  wireEvents();
+  const sampleBtn=document.getElementById("samplebtn"); if(sampleBtn) sampleBtn.addEventListener("click",runSampleSimulation);
+  const runBtn=document.getElementById("runbtn"); if(runBtn) runBtn.addEventListener("click",runEnsembleSimulation);
+}
+function wireEvents(){
+  const add=document.getElementById("addev");
+  if(add) add.addEventListener("click",()=>{ readForwardCfg(); S.cfg.events.push({week:4,amp:0.3}); S.dirty=true; buildForward(); });
+  document.querySelectorAll("#eventlist .del").forEach(b=>b.addEventListener("click",()=>{
+    readForwardCfg(); const i=+b.closest(".ev").dataset.i; S.cfg.events.splice(i,1); S.dirty=true; buildForward(); }));
+  document.querySelectorAll("#eventlist .ev input").forEach(inp=>inp.addEventListener("input",markDirty));
+}
+
+function simAndRender(keepWeek){
+  readForwardCfg();
+  stop();
+  S.hoverNode=null; S.hoverType="core"; S._tipKey=null;
+  const tip=document.getElementById("nodetip"); if(tip) tip.classList.remove("on");
+  const pw = keepWeek ? S.week : 0;
+  runSim(S.cfg);
+  S.week = Math.max(0, Math.min(pw, S.res.snaps.length-1));
+  renderFrame();
+  renderForwardOutcome();
+}
+function markDirty(){
+  if(S.mode!=="forward") return;
+  readForwardCfg();
+  S.dirty=true;
+  const df=document.getElementById("dirtyflag");
+  if(df) df.innerHTML='<div class="dirtyflag">Settings changed. Press <b>Run sample</b> for one animated network or <b>Run simulation</b> for aggregate averages.</div>';
+}
+function liveUpdate(){ markDirty(); }
+function doTimelapse(){ runSampleSimulation(); }
+
+function renderForwardOutcome(){
+  const el=document.getElementById("outpanel"); if(!el) return;
+  if(!S.res){ el.innerHTML='<div class="empty">Adjust the controls, then press <b>Run sample</b> for a single-network timeline or <b>Run simulation</b> for aggregate averages.</div>'; return; }
+  const snaps=S.res.snaps, term=terminalA(snaps), pk=peakA(snaps), Nmin=S.refLines.Nmin;
+  const ens=S.res.ensemble;
+  let cls,ic,head,sub;
+  const avgWord = ens ? " on average" : "";
+  if(term>=Nmin){ cls="ok";ic="▲";head="Thrives — self-sustaining";
+    sub=`Settles around ${term.toFixed(1)} active${avgWord}, above the quorum of ${Nmin}. The club holds itself up.`; }
+  else if(term>=Math.max(2,Nmin*0.35)){ cls="ok";ic="●";head="Survives as a committed core";
+    sub=`Holds ~${term.toFixed(1)}${avgWord} below the formal quorum (${Nmin}) — alive on loyalty, but in the fragile basin.`; }
+  else if(pk>Nmin*0.7){ cls="no";ic="▽";head="Spikes, then collapses";
+    sub=`Peaks near ${pk.toFixed(1)} but decays to ~${term.toFixed(1)}. Early buzz without a structure to hold it.`; }
+  else { cls="no";ic="▾";head="Fades out";
+    sub=`Never gains traction; drifts to ~${term.toFixed(1)}. The collapse pull dominates.`; }
+  el.innerHTML=`<h2><span class="dot"></span>Outcome</h2>
+    <div class="verdict ${cls}"><div class="ic">${ic}</div>
+      <div class="tx"><b>${head}</b><span>${sub}</span></div></div>
+    <div class="costrow">
+      <div class="costcard"><div class="k">Peak</div><div class="v">${pk.toFixed(1)}</div></div>
+      <div class="costcard"><div class="k">End-of-term</div><div class="v">${term.toFixed(1)}</div></div>
+      <div class="costcard"><div class="k">Final reach</div><div class="v">${Math.round(snaps[snaps.length-1].m.filter(x=>x>0.4).length/S.res.model.n*100)}%</div></div>
+      ${ens?`<div class="costcard"><div class="k">Survival prob.</div><div class="v">${Math.round(ens.survivalRate*100)}%</div></div>`:''}
+      ${ens?`<div class="costcard"><div class="k">IQR final</div><div class="v">${ens.q1Final.toFixed(1)}–${ens.q3Final.toFixed(1)}</div></div>`:''}
+    </div>
+    <div class="note">${ens?`Averaged across <b>${ens.trials}</b> randomized network trials. The orange band on the chart is the middle 50% of trial outcomes. Press <b>Play</b> or scrub the timeline to inspect the average club state week by week; use <b>Run sample</b> to animate one concrete randomized network.`:'This is one randomized sample run. Press <b>Play</b> or scrub the timeline to watch motivation move through that network week by week.'}</div>`;
+}
+
+function wireReverse(){
+  wireSrow("Astar",v=>(+v).toFixed(1),()=>{ markPlanDirty(); S.refLines.Astar=+val("Astar"); if(S.res) drawChart(S.week); });
+  wireSrow("rT",null,markPlanDirty);
+  wireSrow("maxEvents",null,markPlanDirty);
+  wireSrow("ampCap",v=>(+v).toFixed(2),markPlanDirty);
+  wireSrow("gvCap",v=>(+v).toFixed(1),markPlanDirty);
+  wireSrow("Kceil",null,markPlanDirty);
+  controls.querySelectorAll("#rregime button").forEach(b=>b.addEventListener("click",()=>{
+    controls.querySelectorAll("#rregime button").forEach(x=>x.classList.remove("on"));
+    b.classList.add("on"); S.rev.regime=b.dataset.r; markPlanDirty();
+  }));
+  const scaff=document.getElementById("scaffAllow");
+  if(scaff) scaff.addEventListener("change",markPlanDirty);
+  S.refLines.Astar=S.rev.Astar;
+  setPlanButtonsEnabled(!!S.planCfg);
+  document.getElementById("planbtn").addEventListener("click",doPlan);
+  document.getElementById("plansamplebtn").addEventListener("click",runPlanSample);
+  document.getElementById("plansimbtn").addEventListener("click",runPlanEnsemble);
+}
+
+function markPlanDirty(){
+  if(S.mode!=="reverse") return;
+  try { readRev(); } catch(e) {}
+  S.planCfg=null;
+  setPlanButtonsEnabled(false);
+  const pb=document.getElementById("progressbox");
+  if(pb) pb.classList.remove("on");
+  const pbtn=document.getElementById("planbtn");
+  if(pbtn && !S.running){ pbtn.disabled=false; pbtn.textContent="Find a plan"; }
+  setPlanStatus('<div class="dirtyflag">Planner settings changed. Press <b>Find a plan</b> again before testing a sample or simulation.</div>');
+}
+
+function readRev(){
+  const r=S.rev;
+  r.Astar=+val("Astar"); r.T=+val("rT"); r.maxEvents=+val("maxEvents");
+  r.ampCap=+val("ampCap"); r.gvCap=+val("gvCap"); r.Kceil=+val("Kceil");
+  r.scaffAllow=document.getElementById("scaffAllow").checked;
+}
+
+function doPlan(){
+  readRev();
+  const btn=document.getElementById("planbtn");
+  S.planCfg=null; setPlanButtonsEnabled(false); setPlanStatus("");
+  const pb=document.getElementById("progressbox"); if(pb) pb.classList.remove("on");
+  btn.textContent="Searching..."; btn.disabled=true;
+  const panel=document.getElementById("planpanel");
+  panel.innerHTML='<div class="empty pulse">Checking feasibility and minimizing effort...</div>';
+  setTimeout(()=>{
+    const out=plan(S.rev);
+    const displayPlanCfg=normalizePlanCfg(out.config);
+    S.planCfg=out.feasible ? displayPlanCfg : null;
+    // render the resulting trajectory
+    stop(); S.resultMode="sample"; S.week=0;
+    S.res=out.res;
+    { const n=out.res.model.n, jt=0.4; out.res.joined=new Array(n).fill(Infinity);
+      out.res.snaps.forEach((s,t)=>{ for(let i=0;i<n;i++){ if(out.res.joined[i]===Infinity && s.Pa && s.Pa[i]>jt) out.res.joined[i]=t; } });
+      const outside=Math.max(0,(+displayPlanCfg.body||0)-n);
+      S.res.layout=buildLayout(out.res.model, netcv.clientWidth||760, NET_H, outside); }
+    S.res.recruit=computeRecruitment(S.res.snaps, displayPlanCfg, S.res.layout.pool.length);
+    S.refLines.Nmin=window.PDE.REGIMES[S.rev.regime].Nmin; S.refLines.Astar=S.rev.Astar;
+    document.getElementById("scrub").max=S.res.snaps.length-1;
+    renderFrame();
+
+    if(!out.feasible){
+      panel.innerHTML=`<h2><span class="dot"></span>Plan</h2>
+        <div class="verdict no"><div class="ic">⚠</div><div class="tx">
+          <b>Out of reach within this budget</b>
+          <span>Even at maximum effort the club tops out around <b>${out.achieved.toFixed(1)}</b> active — short of your ${(+S.rev.Astar).toFixed(1)} target. This is a structural ceiling, not a search failure.</span></div></div>
+        <ol class="steps">
+          <li><div class="t"><b>Loosen a constraint.</b> Raise the visibility ceiling, allow more events, or permit early-weeks mentoring.</div></li>
+          <li><div class="t"><b>Or shift regime.</b> A stabilizing club (lower quorum, stronger self-reinforcement) reaches higher turnout for the same effort — sometimes the real fix is the club's format, not its promotion.</div></li>
+          <li><div class="t"><b>Or lower the target.</b> The trajectory now showing is the best this budget achieves.</div></li>
+        </ol>
+        <div class="note">The displayed run is the maximum-effort attempt. Feasibility is judged on end-of-term attendance (last 4 weeks).</div>`;
+    } else {
+      const ins=instructions(out.config, S.rev, out.res);
+      let steps='';
+      ins.steps.forEach(s=> steps+=`<li><div class="t"><b>${s.h}.</b> ${s.t}</div></li>`);
+      panel.innerHTML=`<h2><span class="dot"></span>Your plan</h2>
+        <div class="verdict ok"><div class="ic">✓</div><div class="tx">
+          <b>Reachable — here's the lightest-touch plan</b>
+          <span>Lands at ~<b>${out.achieved.toFixed(1)}</b> active by end of term (target ${(+S.rev.Astar).toFixed(1)}).</span></div></div>
+        <ol class="steps">${steps}</ol>
+        <div class="costrow">
+          <div class="costcard"><div class="k">Events</div><div class="v">${out.config.events.length}</div></div>
+          <div class="costcard"><div class="k">Visibility</div><div class="v">${(+out.config.gv).toFixed(1)}×</div></div>
+          <div class="costcard"><div class="k">Effort index</div><div class="v">${out.cost.toFixed(1)}</div></div>
+        </div>
+        <div class="note">${ins.frame} &nbsp;The run on the right shows this exact plan — scrub it to see how the network fills in.</div>`;
+    }
+    setPlanButtonsEnabled(!!S.planCfg);
+    setPlanStatus(!!S.planCfg ? '<div class="dirtyflag">Plan ready. Use <b>Run sample plan</b> for one randomized realization or <b>Run simulation plan</b> for aggregate averages using the proposed plan.</div>' : '<div class="dirtyflag">No feasible plan was generated, so plan testing is unavailable until you adjust the budget or target and find a reachable plan.</div>');
+    btn.textContent="Find a plan"; btn.disabled=false;
+  }, 30);
+}
+
+// global events
+document.querySelectorAll("#modeseg button").forEach(b=>b.addEventListener("click",()=>{
+  document.querySelectorAll("#modeseg button").forEach(x=>x.classList.remove("on"));
+  b.classList.add("on"); S.mode=b.dataset.mode; stop(); S.week=0;
+  if(S.mode==="forward"){ S.refLines.Astar=null; buildForward(); }
+  else { S.resultMode="sample"; S.hoverNode=null; S.hoverType="core"; S.planCfg=null; buildReverse(); if(S.res){ renderFrame(); } }
+}));
+
+document.getElementById("playbtn").addEventListener("click",play);
+document.getElementById("scrub").addEventListener("input",e=>{ stop(); S.week=+e.target.value; if(S.res) renderFrame(); });
+document.querySelectorAll("#overlays .o").forEach(b=>b.addEventListener("click",()=>{
+  const k=b.dataset.ov; S.overlays[k]=!S.overlays[k]; b.classList.toggle("on",S.overlays[k]);
+  if(S.res) drawChart(S.week);
+}));
+
+// hover tooltips
+function tipHTML(i){
+  if(S.hoverType==="pool"){
+    const recN = S.res.recruit ? (S.res.recruit[S.week]||0) : 0;
+    const pool = (S.res.layout && S.res.layout.pool) ? S.res.layout.pool : [];
+    const q = pool[i] || {near0:0};
+    const status = i < recN
+      ? (S.resultMode==="ensemble" ? "expected public-body member" : "drawn-in public-body member")
+      : "wider public body";
+    const linked = (q.near0!==undefined ? q.near0 + 1 : "—");
+    return `<div class="nh">Public member #${i+1} <em>wk ${S.week}</em></div>
+      <div class="nr"><span>status</span><b style="color:${i<recN?'var(--good)':'var(--ink3)'}">${status}</b></div>
+      <div class="nr"><span>source</span><b>${i<recN?'events / acquaintances':'not yet drawn in'}</b></div>
+      <div class="nr"><span>nearest core student</span><b>#${linked}</b></div>
+      <div class="nr"><span>drawn-in count</span><b>${recN}</b></div>`;
+  }
+  const s=S.res.snaps[S.week], m=s.m[i], Lo=s.L[i], F=s.F[i];
+  const jw=(S.res.joined&&S.res.joined[i]!==undefined)?S.res.joined[i]:Infinity;
+  const joined = jw<=S.week;
+  const enrolled=s.act && s.act[i]>0.5;
+  const attend=clamp(s.Pa?s.Pa[i]:0,0,1)*(joined?(S.resultMode==="ensemble"?(s.act?s.act[i]:1):(enrolled?1:0)):0);
+  const here=attend>0.5;
+  let status, color, attendText;
+  if(S.resultMode==="ensemble"){
+    status = joined ? "average role · emerged wk "+jw : "average latent role";
+    color = joined ? "var(--good)" : "var(--ink3)";
+    attendText = joined ? Math.round(attend*100)+"% expected" : "—";
+  } else {
+    if(!joined){ status="not yet involved"; color="var(--ink3)"; }
+    else if(!enrolled){ status="left the club"; color="var(--bad)"; }
+    else { status="member · joined wk "+jw; color="var(--good)"; }
+    attendText = joined ? (here?'yes':'no')+' · '+Math.round(attend*100)+'%' : '—';
+  }
+  return `<div class="nh">Student #${i+1} <em>wk ${S.week}</em></div>
+    <div class="nr"><span><span class="swatch" style="background:${plasma(m)}"></span>motivation</span><b>${m.toFixed(2)}</b></div>
+    <div class="nr"><span>loyalty</span><b>${Lo.toFixed(2)}</b></div>
+    <div class="nr"><span>fatigue</span><b>${F.toFixed(2)}</b></div>
+    <div class="nr"><span>${S.resultMode==="ensemble"?'avg attendance':'attending'}</span><b style="color:${here?'var(--good)':'var(--ink3)'}">${attendText}</b></div>
+    <div class="nr"><span>status</span><b style="color:${color}">${status}</b></div>`;
+}
+const nodetip=document.getElementById("nodetip");
+function placeTip(p){
+  const w=netcv.clientWidth||760;
+  nodetip.style.left=Math.max(66,Math.min(w-66,p.x))+"px";
+  nodetip.style.top=p.y+"px";
+  nodetip.style.transform=(p.y<70?"translate(-50%,16%)":"translate(-50%,-114%)");
+}
+function clearHover(){ if(S.hoverNode!==null){ S.hoverNode=null; S.hoverType="core"; S._tipKey=null; if(S.res) drawChart(S.week); } nodetip.classList.remove("on"); }
+netcv.addEventListener("mousemove",(e)=>{
+  if(!S.res){ return; }
+  const rect=netcv.getBoundingClientRect(), cssW=netcv.clientWidth||760;
+  const mx=(e.clientX-rect.left)*(cssW/rect.width), my=(e.clientY-rect.top)*(NET_H/rect.height);
+  let best=-1, bestd=1e9, bestType="core", bestPos=null;
+  for(let i=0;i<S.res.model.n;i++){
+    const p=nodePos(i,S.clock); const d=Math.hypot(mx-p.x,my-p.y);
+    if(d<bestd){ bestd=d; best=i; bestType="core"; bestPos=p; }
+  }
+  const recN = S.res.recruit ? (S.res.recruit[S.week]||0) : 0;
+  const ppos = S._lastPoolPos || [];
+  for(let k=0;k<Math.min(recN, ppos.length);k++){
+    const p=ppos[k]; if(!p) continue;
+    const d=Math.hypot(mx-p.x,my-p.y);
+    if(d<bestd){ bestd=d; best=k; bestType="pool"; bestPos=p; }
+  }
+  const thresh = bestType==="pool" ? 10 : 13;
+  if(best>=0 && bestd<=thresh){
+    if(S.hoverNode!==best || S.hoverType!==bestType){ S.hoverNode=best; S.hoverType=bestType; S._tipKey=null; drawChart(S.week); }
+    if(bestPos) placeTip(bestPos);
+    const key=bestType+":"+best+":"+S.week; if(S._tipKey!==key){ S._tipKey=key; nodetip.innerHTML=tipHTML(best); }
+    nodetip.classList.add("on");
+  } else { clearHover(); }
+});
+netcv.addEventListener("mouseleave",clearHover);
+
+let rt=null;
+window.addEventListener("resize",()=>{ clearTimeout(rt); rt=setTimeout(()=>{
+  if(S.res){ const pc=S.res.layout&&S.res.layout.pool?S.res.layout.pool.length:0;
+    S.res.layout=buildLayout(S.res.model, netcv.clientWidth||760, NET_H, pc); renderFrame(); }
+},150); });
+
+// boot
+buildForward();
+if(typeof requestAnimationFrame!=='undefined') requestAnimationFrame(ambient);
+
+})();
+</script>
+</body>
+</html>
