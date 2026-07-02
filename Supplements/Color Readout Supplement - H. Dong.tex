@@ -1,0 +1,203 @@
+\documentclass[11pt]{article}
+
+% ---- standalone supplement; compiles on its own (e.g. in Overleaf) ----
+% It does not \input or depend on the main paper sources.
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage[table]{xcolor}
+\usepackage{microtype}
+\usepackage[colorlinks=true,allcolors=blue!55!black]{hyperref}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\Nn}{\mathcal{N}}
+\DeclareMathOperator{\clip}{clip}
+
+\title{\textbf{Supplement: A Motivation--to--Color Readout for the\\
+Participation Diffusion Model}}
+\author{Hudson Dong \thanks{Class of 2027, Stuyvesant High School, 345 Chambers St, New York, NY 10282. Email: \texttt{hdong70@stuy.edu}}}
+\date{}
+
+\begin{document}
+\maketitle
+\vspace{-3em}
+
+\begin{abstract}
+\noindent
+This short note formalizes the visual encoding used by the interactive companion to
+\emph{Participation Diffusion Dynamics in Influence-Driven Networks}. It defines the map from a
+student's scalar motivation state to a display color, records the perceptual rationale for the
+choice of color scale, distinguishes core-network nodes from public-body display dots, and defines
+the aggregate and ensemble readouts that summarize the motivational state of the network at a
+glance. The note is self-contained and introduces no changes to the underlying model.
+\end{abstract}
+
+\section{Setup}
+
+Let the club consist of $n$ students indexed by $i \in \{1,\dots,n\}$, embedded in a weighted
+directed influence network with in-neighborhoods $\Nn(i)$. At each discrete time (week) $t$, the
+model assigns student $i$ a bounded \emph{motivation} state
+\begin{equation}
+  m_i(t) \in [0,1],
+  \label{eq:m}
+\end{equation}
+together with a \emph{loyalty} stock $L_i(t)\in[0,1]$ and a \emph{fatigue} stock $F_i(t)\in[0,1]$.
+We treat \eqref{eq:m} as given by the model dynamics; the present note concerns only how
+$m_i(t)$ and $L_i(t)$ are rendered, and how they are summarized across $i$.
+
+Because $m_i(t)$ is already normalized to the unit interval, no instance-dependent rescaling is
+required: the encoding below is a fixed function of $m_i(t)$, so colors are comparable across
+students, across weeks, and across separate simulation runs.
+
+\section{The color map}
+
+\paragraph{Anchor stops.}
+Let $\mathsf{c}_0,\dots,\mathsf{c}_K \in [0,255]^3$ be $K{+}1$ anchor colors in RGB space placed at
+equally spaced levels $\ell_k = k/K$. We use the $K{=}5$ \emph{plasma} anchors of
+Table~\ref{tab:stops}, a perceptually ordered sequence running from dark blue through magenta and
+orange to bright yellow.
+
+\begin{table}[h]
+\centering
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{cccccc}
+\toprule
+$k$ & level $\ell_k$ & $R$ & $G$ & $B$ & swatch \\
+\midrule
+$0$ & $0.0$ & $13$  & $8$   & $135$ & \cellcolor[RGB]{13,8,135}\hspace{2.4em} \\
+$1$ & $0.2$ & $126$ & $3$   & $168$ & \cellcolor[RGB]{126,3,168}\hspace{2.4em} \\
+$2$ & $0.4$ & $177$ & $42$  & $144$ & \cellcolor[RGB]{177,42,144}\hspace{2.4em} \\
+$3$ & $0.6$ & $225$ & $100$ & $98$  & \cellcolor[RGB]{225,100,98}\hspace{2.4em} \\
+$4$ & $0.8$ & $252$ & $166$ & $54$  & \cellcolor[RGB]{252,166,54}\hspace{2.4em} \\
+$5$ & $1.0$ & $240$ & $249$ & $33$  & \cellcolor[RGB]{240,249,33}\hspace{2.4em} \\
+\bottomrule
+\end{tabular}
+\caption{Plasma anchor stops $\mathsf{c}_k$ at levels $\ell_k = k/5$.}
+\label{tab:stops}
+\end{table}
+
+\paragraph{Piecewise-linear interpolation.}
+Define the color map $\mathcal{C}:[0,1]\to[0,255]^3$ by linear interpolation between adjacent anchors.
+For $m\in[0,1]$, let $u = Km$, $k=\lfloor u\rfloor$ (capped at $K{-}1$), and $f = u-k$; then
+\begin{equation}
+  \mathcal{C}(m) \;=\; (1-f)\,\mathsf{c}_k \;+\; f\,\mathsf{c}_{k+1}.
+  \label{eq:cmap}
+\end{equation}
+A core-network student with motivation $m_i(t)$ is drawn as a disk filled with
+$\mathcal{C}\!\big(m_i(t)\big)$. The map $\mathcal{C}$ is continuous and applied componentwise,
+so small changes in motivation produce small, smooth changes in color.
+
+\paragraph{Perceptual rationale.}
+The plasma sequence is approximately \emph{perceptually uniform} and increases monotonically in
+luminance from $\mathsf{c}_0$ to $\mathsf{c}_5$. Two consequences matter for reading the display.
+First, ordering is preserved: if $m_i < m_j$ then student $i$ appears uniformly ``cooler/darker''
+than student $j$, so relative motivation can be judged by brightness alone. Second, equal
+differences in $m$ correspond to roughly equal perceived color differences, so the spatial
+\emph{gradient} of color across the network is an honest proxy for the spatial gradient of
+motivation, rather than exaggerating or compressing particular ranges. The map degrades gracefully
+to grayscale luminance, preserving the ordering for color-vision deficiencies.
+
+\paragraph{Core-network ring and loyalty overlay.}
+Every simulated core-network student is marked by an outer ring so that the viewer can distinguish
+modeled agents from the wider public-body dots. Motivation remains the fill channel: dormant or
+low-motivation students are dark, while motivated students move along the plasma scale. Loyalty is
+rendered on a separate, non-competing channel: an amber arc of angular extent $2\pi\,L_i(t)$ is drawn
+around the node. Motivation (fill hue and brightness), core membership (outer ring), and loyalty
+(arc sweep) are thus separable visual variables. Inactive students --- those whose participation
+indicator has lapsed --- are desaturated and dashed, keeping them visible without treating them as
+current participants.
+
+
+\section{Core-network and public-body display layers}
+
+The mathematical model is defined on the simulated core network $V=\{1,\dots,n\}$. The interactive
+display may also show a surrounding field of public-body dots representing students outside that core
+network. These dots are a presentation layer: they help communicate that the club is embedded in a
+larger school population, but they are not additional model agents unless explicitly included in $V$.
+For this reason public-body dots are rendered without the core-network ring. If a public-body dot is
+shown as ``drawn in,'' that status is a qualitative display readout derived from turnout, events, and
+acquaintance reach; it should not be confused with the state variables $m_i,L_i,F_i$ governed by the
+model equations.
+
+The display therefore uses a simple visual grammar:
+\begin{itemize}
+  \item filled disk color $\mathcal{C}(m_i)$: current motivation of a simulated core-network agent;
+  \item outer ring: membership in the simulated core network;
+  \item amber arc: loyalty stock $L_i$;
+  \item dashed/desaturated node: lapsed or inactive core-network agent;
+  \item plain faint dot: surrounding public-body display dot.
+\end{itemize}
+
+\section{Aggregate reach scalars}
+
+To summarize the network's motivational state at week $t$ in a single number we use the mean
+motivation, which we call the \emph{reach} (or affectedness) of the diffusion process:
+\begin{equation}
+  \bar{m}(t) \;=\; \frac{1}{n}\sum_{i=1}^{n} m_i(t) \;\in[0,1].
+  \label{eq:reach}
+\end{equation}
+Equation~\eqref{eq:reach} is the spatial average of the field that $\mathcal{C}$ colors; it rises as
+motivation spreads through $\Nn(\cdot)$ and falls as it drains, and it is directly comparable across
+runs because each $m_i\in[0,1]$.
+
+It is sometimes useful to count only students whose motivation has crossed a salience threshold
+$\tau\in[0,1]$. Define the \emph{active reach fraction}
+\begin{equation}
+  \rho_\tau(t) \;=\; \frac{1}{n}\,\bigl|\{\, i : m_i(t) > \tau \,\}\bigr| \;\in[0,1],
+  \label{eq:rho}
+\end{equation}
+the share of the network rendered at or above the color level $\mathcal{C}(\tau)$. The companion uses
+a fixed $\tau$ to report a ``reach'' percentage; \eqref{eq:rho} is monotone nonincreasing in $\tau$,
+with $\rho_0(t)$ counting all students with any motivation and $\rho_\tau(t)\le \bar m(t)/\tau$ by
+Markov's inequality.
+
+A complementary scalar is the cross-sectional spread of motivation,
+\begin{equation}
+  s(t) \;=\; \sqrt{\tfrac{1}{n}\textstyle\sum_{i=1}^{n}\bigl(m_i(t)-\bar m(t)\bigr)^2},
+  \label{eq:spread}
+\end{equation}
+which is small when the network is uniform (all nodes a single color --- either a dim, collapsing
+club or a fully saturated one) and largest during the transient phases when a motivated core
+coexists with an unconvinced periphery. Reading $\bar m(t)$ together with $s(t)$ distinguishes a
+genuinely thriving, differentiated network from one that is uniformly saturated, even though both can
+share a high attendance count.
+
+
+\section{Sample and ensemble readouts}
+
+The companion provides two numerical views of the same equations. A sample run displays one
+realization of the randomized graph and heterogeneous initial conditions. An ensemble run averages
+$M$ independent realizations under the same intervention path. For any scalar network quantity
+$Z(t)$, such as attendance $A(t)$, mean motivation $\bar m(t)$, or active reach $\rho_\tau(t)$, the
+reported ensemble mean is
+\begin{equation}
+  \widehat Z_M(t)=\frac{1}{M}\sum_{r=1}^{M} Z^{(r)}(t),
+  \,\qquad t=0,\dots,T.
+  \label{eq:ensembleZ}
+\end{equation}
+The time scrubber in ensemble mode moves through these averaged weekly states. Uncertainty bands are
+empirical quantiles of $\{Z^{(r)}(t)\}_{r=1}^{M}$ and are visual summaries of random-network
+sensitivity, not additional dynamical variables.
+
+When the network panel displays averaged nodes, the corresponding value for a core-network index is
+\begin{equation}
+  \widehat m_i(t)=\frac{1}{M}\sum_{r=1}^{M} m_i^{(r)}(t),
+  \label{eq:ensemblem}
+\end{equation}
+and analogously for $L_i,F_i$, and attendance probability. Such node-level values should be read as
+averaged positions in the simulated core network, not as predictions about named students. This
+preserves the original model while allowing the interface to show both a mechanism-level sample and a
+robustness-oriented ensemble summary.
+
+\section{Summary}
+
+The display encodes the model's per-student motivation $m_i(t)$ through the fixed, perceptually
+ordered map $\mathcal{C}$ of \eqref{eq:cmap}, with core-network membership marked by an outer ring
+and loyalty $L_i(t)$ on an orthogonal arc channel. The scalars $\bar m(t)$, $\rho_\tau(t)$, and
+$s(t)$ of \eqref{eq:reach}--\eqref{eq:spread} summarize, respectively, how far motivation has
+spread, what fraction of the network it has reached, and how unevenly it is distributed. The
+ensemble quantities \eqref{eq:ensembleZ}--\eqref{eq:ensemblem} average these same model outputs over
+randomized graph realizations; they do not add or modify behavioral equations.
+
+\end{document}
