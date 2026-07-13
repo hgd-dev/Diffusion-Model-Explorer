@@ -894,7 +894,9 @@ function cfgToOpts(c){
 }
 
 function normalizePlanCfg(planCfg){
-  const base=Object.assign({}, JSON.parse(JSON.stringify(DEF.forward)), JSON.parse(JSON.stringify(S.cfg||{})));
+  // Reverse-plan testing must use the same canonical network settings
+  // that were used during the search, not the last forward-mode settings.
+  const base=JSON.parse(JSON.stringify(DEF.forward));
   const c=Object.assign(base, JSON.parse(JSON.stringify(planCfg||{})));
   c.events=(c.events||[]).map(e=>({week:+e.week, amp:+e.amp}));
   c.seed=(+c.seed||SEED);
@@ -1000,11 +1002,36 @@ function controlCost(c){
 
 function maxConfig(rev){
   const wks = [];
-  const m = Math.max(1,rev.maxEvents|0);
-  for(let k = 0; k < m; k++) wks.push({week: 1 + Math.round(k*(Math.min(rev.T-2, 12))/Math.max(1,m)), amp: rev.ampCap});
-  return { n:36, regime:rev.regime, seed:SEED, T:rev.T,
-    events:wks, gv:rev.gvCap, K:rev.Kceil,
-    scaffOn:rev.scaffAllow, scaffA:1, scaffB:6, gB:2.0 };
+  const m = Math.max(0,rev.maxEvents|0);
+
+  for(let k = 0; k < m; k++){
+    wks.push({
+      week: 1 + Math.round(
+        k * Math.min(rev.T - 2, 12) / Math.max(1, m)
+      ),
+      amp: rev.ampCap
+    });
+  }
+
+  return {
+    n:36,
+    regime:rev.regime,
+    seed:SEED,
+    T:rev.T,
+    events:wks,
+    gv:rev.gvCap,
+    K:rev.Kceil,
+    scaffOn:rev.scaffAllow,
+    scaffA:1,
+    scaffB:6,
+    gB:2.0,
+    groupSize:8,
+    inTies:4,
+    outTies:1.5,
+    acquaint:0,
+    body:220,
+    trials:250
+  };
 }
 
 function plan(rev){
@@ -1032,6 +1059,8 @@ function plan(rev){
 
   function descend(start){
     let c = JSON.parse(JSON.stringify(start));
+    const visited = new Set([JSON.stringify(c)]);
+    const lastUsefulWeek = Math.max(1, rev.T - 1);
     let improved=true, guard=0;
     while(improved && guard++<60 && simCount<simBudget){
       improved=false;
@@ -1061,6 +1090,41 @@ function plan(rev){
       { const trial=JSON.parse(JSON.stringify(c));
         trial.K=Math.max(4, trial.K-2);
         if(ok(trial)){ c=trial; improved=true; } }
+      // If no lower-cost move is immediately feasible, explore nearby
+      // event timings. A feasible timing move may open a later path to
+      // further cost reductions.
+      if(!improved && c.events.length>0){
+        let moved=false;
+
+        for(let k=0;k<c.events.length && !moved;k++){
+          for(const shift of [-1,1]){
+            const newWeek=(+c.events[k].week)+shift;
+
+            if(newWeek<1 || newWeek>lastUsefulWeek) continue;
+
+            if(
+              c.events.some(
+                (e,j)=>j!==k && +e.week===newWeek
+              )
+            ) continue;
+
+            const trial=JSON.parse(JSON.stringify(c));
+            trial.events[k].week=newWeek;
+            trial.events.sort((a,b)=>a.week-b.week);
+
+            const key=JSON.stringify(trial);
+            if(visited.has(key)) continue;
+
+            if(ok(trial)){
+              c=trial;
+              visited.add(key);
+              improved=true;
+              moved=true;
+              break;
+            }
+          }
+        }
+      }
     }
     return c;
   }
@@ -1073,7 +1137,12 @@ function plan(rev){
     pert.events.forEach(e=> e.amp=Math.min(rev.ampCap,+(e.amp+searchRng()*0.12).toFixed(2)));
     if(pert.scaffOn) pert.gB=Math.min(2.0,+(pert.gB+searchRng()*0.3).toFixed(2));
     if(searchRng()<0.4 && pert.events.length<rev.maxEvents)
-      pert.events.push({week:1+Math.floor(searchRng()*8),amp:rev.ampCap*0.6});
+      pert.events.push({
+        week:1+Math.floor(
+          searchRng()*Math.max(1,rev.T-1)
+        ),
+        amp:rev.ampCap*0.6
+      });
     const cand=descend(pert);
     const cc=controlCost(cand);
     if(ok(cand) && cc<bestCost){ best=cand; bestCost=cc; }
@@ -1093,22 +1162,32 @@ function instructions(c, rev, res){
     steps.push({h:`Run ${ev.length} signature event${ev.length>1?"s":""}`,
       t:`Schedule ${intensity} push in ${wk}. These are kickoffs, showcases, or socials that pull people in the door and reset enthusiasm (external reinforcement pulse, amplitude ≈ ${amp.toFixed(2)}).`});
   } else {
-    steps.push({h:"No events needed", t:"The network sustains itself without event pulses under these settings — focus effort on the channels below."});
+    steps.push({
+      h:"No events used in the selected plan",
+      t:"On the deterministic reference realization, the terminal target is met without event pulses over the simulated horizon. This does not establish indefinite self-sustenance."
+    });
   }
   const gvL = lvl(c.gv,1.3,2.6);
   if(c.gv>1.05){
-    steps.push({h:`Invest ${gvL==="light"?"a little":gvL==="moderate"?"steadily":"heavily"} in visibility`,
-      t:`Get members posting, inviting, and talking the club up (visibility amplification γ\u1d65 ≈ ${(+c.gv).toFixed(1)}). This thickens friendship ties faster and makes each active member's enthusiasm reach more peers — the lever that lets a small core punch above its size.`});
+    steps.push({
+      h:`Invest ${gvL==="light"?"a little":gvL==="moderate"?"steadily":"heavily"} in visibility`,
+      t:`Get members posting, inviting, and communicating more visibly (visibility amplification γ\u1d65 ≈ ${(+c.gv).toFixed(1)}). In the model, this increases effective expressive reach and strengthens adaptive exposure weights; it does not create new friendship ties.`
+    });
   } else {
-    steps.push({h:"Visibility can stay organic", t:"No special promotion drive is required at this target; ordinary word-of-mouth suffices (γ\u1d65 ≈ 1)."});
+    steps.push({
+      h:"Visibility remains at baseline",
+      t:"The selected finite-horizon plan uses no visibility amplification beyond the baseline level (γ\u1d65 ≈ 1)."
+    });
   }
   if(c.scaffOn){
     const len=c.scaffB-c.scaffA+1;
     steps.push({h:`Mentor the early weeks (${c.scaffA}–${c.scaffB})`,
       t:`For the first ${len} week${len>1?"s":""}, pair newcomers with experienced leads and make small turnouts feel rewarding rather than discouraging (scaffolding γ_B ≈ ${(+c.gB).toFixed(2)}). This carries the club through the fragile below-quorum stretch before momentum takes over.`});
   }
-  steps.push({h:`Plan room & format for ~${c.K} active at once`,
-    t:`Size the space and session format for roughly ${c.K} simultaneous participants (capacity). Too tight throttles growth; far too large dilutes the room.`});
+  steps.push({
+    h:`Use capacity scale K ≈ ${c.K}`,
+    t:`K is the model's smooth congestion scale. Increasing K reduces capacity attenuation and cannot lower participation in the current equations. The present cost specification assigns no direct cost to capacity.`
+  });
   // bistability / outcome framing
   const term=terminalA(res.snaps), pk=peakA(res.snaps);
   const Nmin = window.PDE.REGIMES[c.regime].Nmin;
@@ -1776,7 +1855,7 @@ function buildForward(){
       <div class="hint">Load a worked example, then tweak anything.</div>
       <div class="chips">
         <button class="chip" data-preset="A"><b>A</b> naive collapse</button>
-        <button class="chip" data-preset="B"><b>B</b> stable</button>
+        <button class="chip" data-preset="B"><b>B</b> persistent</button>
         <button class="chip" data-preset="C"><b>C</b> rescue</button>
       </div>
     </div>
@@ -1801,9 +1880,9 @@ function buildForward(){
       <div class="row"><label>Regime</label>
         <div class="seg" id="regime" style="width:260px">
           <button data-r="collapse" class="${c.regime==='collapse'?'on':''}">Collapse-prone</button>
-          <button data-r="stabilize" class="${c.regime==='stabilize'?'on':''}">Stabilizing</button>
+          <button data-r="stabilize" class="${c.regime==='stabilize'?'on':''}">Favorable</button>
         </div></div>
-      <div class="hint">Collapse-prone clubs need a high quorum and lose steam easily; stabilizing clubs self-reinforce at lower turnout.</div>
+      <div class="hint">The collapse-prone regime has a higher quorum and faster decay; the favorable regime has a lower quorum and stronger persistence parameters.</div>
       ${srow("Weeks to simulate","T",4,52,1,c.T)}
     </div>
     <div class="panel">
@@ -1813,7 +1892,7 @@ function buildForward(){
       ${srow("Close ties / student","inTies",0,16,1,c.inTies,"(inside group)")}
       ${srow("Bridge ties / student","outTies",0,8,0.5,(+c.outTies).toFixed(1),"(across groups)")}
       ${srow("Extra acquaintance ties","acquaint",0,40,1,c.acquaint,"(global weak ties)")}
-      ${srow("Public population","body",0,700,10,c.body,"(whole school)")}
+      ${srow("Illustrative public dots","body",0,700,10,c.body,"(display only)")}
       <div class="hint" style="margin-top:8px">Close ties stay inside friend groups; bridge ties jump between groups. Both are randomized each run.</div>
     </div>
     <div class="panel">
@@ -1822,7 +1901,7 @@ function buildForward(){
       ${eventEditorHTML(c.events)}
       <div style="margin-top:14px">
         ${srow("Visibility&nbsp;γ<sub>v</sub>","gv",1,8,0.1,(+c.gv).toFixed(1),"(promotion)")}
-        ${srow("Capacity&nbsp;K","K",2,100,1,c.K,"(room size)")}
+        ${srow("Capacity scale&nbsp;K","K",2,100,1,c.K,"(smooth congestion)")}
       </div>
     </div>
     <div class="panel">
@@ -1849,8 +1928,8 @@ function buildReverse(){
   controls.innerHTML=`
     <div class="panel">
       <h2><span class="dot"></span>Goal</h2>
-      <div class="hint">Tell the planner the club you want by end of term; it searches for the lowest-effort way to get there.</div>
-      ${srow("Target steady attendance","Astar",1,60,0.5,(+r.Astar).toFixed(1))}
+      <div class="hint">Set a final-four-week attendance target; the heuristic searches for a low-cost feasible plan.</div>
+      ${srow("Target terminal-window attendance","Astar",1,60,0.5,(+r.Astar).toFixed(1))}
       <div class="row"><label>Regime</label>
         <div class="seg" id="rregime" style="width:260px">
           <button data-r="collapse" class="${r.regime==='collapse'?'on':''}">Collapse-prone</button>
@@ -1860,7 +1939,7 @@ function buildReverse(){
     </div>
     <div class="panel runpanel planrunpanel">
       <h2><span class="dot"></span>Planner action</h2>
-      <div class="hint">After setting your goal and budget, press this to search for the lightest plan that still reaches the target.</div>
+      <div class="hint">After setting the target and control bounds, press this to search for a lower-cost feasible plan. The result is not guaranteed to be globally optimal.</div>
       <button class="btn primary" id="planbtn">Find a plan</button>
       <div class="hint" style="margin-top:9px">After a plan is found, test it with one animated network or an aggregate simulation.</div>
       <div class="runpair" style="margin-top:8px">
@@ -2070,23 +2149,31 @@ function doPlan(){
 
     if(!out.feasible){
       panel.innerHTML=`<h2><span class="dot"></span>Plan</h2>
-        <div class="verdict no"><div class="ic">⚠</div><div class="tx">
-          <b>No feasible plan found by this search</b>
-          <span>The maximum-control starting configuration tested reaches approximately <b>${out.achieved.toFixed(1)}</b> active over the terminal window, below the ${(+S.rev.Astar).toFixed(1)} target. This does not prove that the target is structurally infeasible.</span>
+        <div class="verdict no">
+          <div class="ic">⚠</div>
+          <div class="tx">
+            <b>No feasible plan found by this search</b>
+            <span>The maximum-control starting configuration tested reaches approximately <b>${out.achieved.toFixed(1)}</b> active over the terminal window, below the ${(+S.rev.Astar).toFixed(1)} target. This does not prove that the target is structurally infeasible.</span>
+          </div>
+        </div>
         <ol class="steps">
           <li><div class="t"><b>Loosen a constraint.</b> Raise the visibility ceiling, allow more events, or permit early-weeks mentoring.</div></li>
-          <li><div class="t"><b>Or shift regime.</b> A stabilizing club (lower quorum, stronger self-reinforcement) reaches higher turnout for the same effort — sometimes the real fix is the club's format, not its promotion.</div></li>
+          <li><div class="t"><b>Or shift regime.</b> A favorable regime with a lower quorum and stronger persistence parameters may reach higher turnout under the same control bounds.</div></li>
           <li><div class="t"><b>Or lower the target.</b> The trajectory now showing is the maximum-control starting configuration tested by this run.</div></li>
         </ol>
-        <div class="note">The displayed run is the maximum-control starting configuration. The heuristic may miss feasible schedules with different timings. Feasibility is judged by the final-four-week mean.</div>
+        <div class="note">The displayed run is the maximum-control starting configuration. The heuristic may miss feasible schedules with different timings. Feasibility is judged by the final-four-week mean.</div>`;
     } else {
       const ins=instructions(out.config, S.rev, out.res);
       let steps='';
       ins.steps.forEach(s=> steps+=`<li><div class="t"><b>${s.h}.</b> ${s.t}</div></li>`);
       panel.innerHTML=`<h2><span class="dot"></span>Your plan</h2>
-        <div class="verdict ok"><div class="ic">✓</div><div class="tx">
-          <b>Feasible plan found by the heuristic</b>
-          <span>On the deterministic reference realization, the final-four-week mean is approximately <b>${out.achieved.toFixed(1)}</b> (target ${(+S.rev.Astar).toFixed(1)}). This is the lowest-cost feasible plan encountered, not a guaranteed global optimum.</span>
+        <div class="verdict ok">
+          <div class="ic">✓</div>
+          <div class="tx">
+            <b>Feasible plan found by the heuristic</b>
+            <span>On the deterministic reference realization, the final-four-week mean is approximately <b>${out.achieved.toFixed(1)}</b> (target ${(+S.rev.Astar).toFixed(1)}). This is the lowest-cost feasible plan encountered, not a guaranteed global optimum.</span>
+          </div>
+        </div>
         <ol class="steps">${steps}</ol>
         <div class="costrow">
           <div class="costcard"><div class="k">Events</div><div class="v">${out.config.events.length}</div></div>
