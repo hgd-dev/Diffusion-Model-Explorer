@@ -1302,9 +1302,15 @@ function plan(rev){
         ),
         amp:rev.ampCap*0.6
       });
-    const cand=descend(pert);
-    const cc=controlCost(cand);
-    if(ok(cand) && cc<bestCost){ best=cand; bestCost=cc; }
+    if(!ok(pert)) continue;
+
+    const cand = descend(pert);
+    const cc = controlCost(cand);
+    
+    if(cc < bestCost){
+      best = cand;
+      bestCost = cc;
+    }
   }
   const res=window.PDE.simulate(cfgToOpts(best));
   return { feasible:true, config:best, res, cost:bestCost, achieved:terminalA(res.snaps) };
